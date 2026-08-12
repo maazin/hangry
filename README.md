@@ -145,6 +145,76 @@ with the restaurant."*
 
 ---
 
+## Design
+
+Delivery apps are loud because they are selling you a hundred restaurants.
+Hangry sells one decision, so the borrowing from DoorDash, Uber Eats and
+Grubhub is structural rather than visual — full-width primary actions,
+generous list rows, one saturated brand colour doing all the work. The rest
+is restraint: hairline borders, one type family, real whitespace, and no
+shadow doing a border's job.
+
+**The rule the palette may not break.** `unverified` is amber, and stays
+amber in both themes. It is the only thing on screen that can hurt someone,
+so it never gets absorbed into the brand green. Anything that reads as a
+safety state — the ranking banner, the winner card's *call ahead* block, the
+per-row badge — uses `--warn`, never `--brand`.
+
+**Tokens.** Everything lives in [`web/app/globals.css`](web/app/globals.css)
+as custom properties, with a dark theme under `prefers-color-scheme`. The
+same names are mirrored into `tailwind.config.ts` so utility classes and
+component classes cannot drift into two different palettes. Change a colour
+in one place and both follow.
+
+| role | light | dark |
+|---|---|---|
+| `--bg` / `--surface` | `#f7f9f7` / `#ffffff` | `#0a0f0c` / `#111815` |
+| `--text` / `--text-2` | `#0e1512` / `#59665f` | `#ecf2ee` / `#93a099` |
+| `--brand` | `#099250` | `#24c67c` |
+| `--warn` | `#b54708` | `#fdb022` |
+| `--danger` | `#b42318` | `#fda29b` |
+
+**Type.** Inter via `next/font`, self-hosted at build time — there is no
+third-party request on the joiner's first paint, which is the only paint most
+of them will wait for. Headings run `-0.028em` tracking, body `-0.011em`.
+One family, four weights.
+
+**Component classes.** `.card`, `.btn` (`-primary` / `-secondary` / `-quiet`),
+`.chip`, `.field`, `.label`, `.badge`, `.panel-warn`, `.row`. Prefer these
+over ad-hoc utilities so a restyle stays a one-file change. Interactive
+targets are ≥52px on the primary path; every joiner is assumed to be on a
+phone, one-handed, in a doorway.
+
+**Accessibility.** One `:focus-visible` treatment everywhere. Drag-to-reorder
+has arrow-button and keyboard equivalents — dragging is hard one-handed and
+impossible with a screen reader, so the arrows are a parallel path rather
+than a fallback. `prefers-reduced-motion` is honoured.
+
+## Assets
+
+All generated from source in the repo; there are no binary design files to
+keep in sync.
+
+| file | what it is |
+|---|---|
+| [`web/app/icon.svg`](web/app/icon.svg) | favicon and app icon |
+| [`web/components/Logo.tsx`](web/components/Logo.tsx) | the same mark in-product, plus wordmark |
+| [`web/components/icons.tsx`](web/components/icons.tsx) | line icons — one 24px grid, 1.75 stroke, round caps |
+| [`web/app/opengraph-image.tsx`](web/app/opengraph-image.tsx) | 1200×630 link preview, rendered by `next/og` |
+| [`web/app/apple-icon.tsx`](web/app/apple-icon.tsx) | 180×180 iOS home-screen icon |
+
+**The mark** is a fork with a tick. A fork alone says "food app"; the tick is
+what makes it this one, since the product's whole claim is that the argument
+is over. Drawn as solid paths rather than strokes so it stays crisp at 16px.
+
+**The link preview is a growth surface, not decoration.** The only way Hangry
+spreads is one person pasting a link into a group chat, and a bare URL gets
+scrolled past. Both generated images draw the mark as inline SVG rather than
+a 🍴 emoji — Satori ships no colour emoji font and renders it as a grey
+glyph, which quietly breaks the brand in the one place it is most visible.
+
+---
+
 ## Layout
 
 ```
@@ -161,8 +231,17 @@ api/
   alembic/versions/       0001 sessions · 0002 places · 0003 rankings · 0004 locked
   tests/                  126 tests
 web/
-  app/                    / (create) and /s/[slug] (everything else)
-  components/             ConstraintForm, Lobby, RankingList, Results
+  app/
+    page.tsx              / — create a session
+    s/[slug]/page.tsx     everything else, driven by session status
+    globals.css           design tokens and component classes
+    layout.tsx            font, metadata, theme colour
+    icon.svg  opengraph-image.tsx  apple-icon.tsx
+  components/
+    SessionView.tsx       the state machine: join → lobby → rank → result
+    ConstraintForm.tsx    the joiner's entire flow
+    Lobby.tsx  RankingList.tsx  Results.tsx
+    Logo.tsx  icons.tsx  ui.tsx
   lib/                    api client, types, constraint vocabulary
 ```
 
