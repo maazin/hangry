@@ -1,0 +1,36 @@
+# Rename `app` to whatever `fly launch` allocates you — it must be globally
+# unique, so this value is a placeholder rather than a default.
+app = "hangry-api"
+primary_region = "ewr"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Migrations run before the new version takes traffic. If this fails, the
+# deploy aborts and the old machine keeps serving — which is the behaviour
+# you want at 10pm on a Sunday.
+[deploy]
+  release_command = "alembic upgrade head"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  # Realtime is still polling and in-process pub/sub, so a second instance
+  # would split WebSocket subscribers. One machine until Phase 5/6.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

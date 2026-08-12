@@ -329,10 +329,27 @@ Two deviations from the PRD's contract, both deliberate:
   tell which row in `participants` is itself, and a page reload would ask
   someone to rank again after they already had.
 
-## Not built
+## Deploying
 
-- **Deploy.** Phase 0 asks for both apps live on day zero. That needs
-  Vercel/Fly accounts, so it is yours to run — nothing else is blocking it.
+API on Fly.io, web on Vercel, Postgres wherever. The repo is configured for
+it — `api/Dockerfile`, `api/fly.toml`, and the environment variables in the
+two `.env.example` files are in place, and the container has been built and
+run against Postgres to confirm it serves.
+
+**[DEPLOY.md](DEPLOY.md) is the runbook.** It needs your accounts, so the
+commands are yours to run. Three things in there are worth knowing before
+you start:
+
+- The **order is circular** — the web build bakes in the API's URL, and the
+  API needs the web origin for CORS. Deploy the API first, then the web app,
+  then set `CORS_ORIGINS`.
+- Managed Postgres injects `DATABASE_URL` as `postgres://`, which SQLAlchemy
+  resolves to psycopg2 and dies on. `app/config.py` rewrites the scheme, so
+  paste the platform's value unchanged.
+- `NEXT_PUBLIC_*` is compiled into the bundle. Setting it after the build
+  does nothing until you redeploy.
+
+## Not built
 - **WebSockets** (Phase 5). Polling every 3s, as the PRD specifies for v1.
 - **Isochrones, PostGIS, Foursquare** (Phases 6–7). Saved groups landed
   early — see *Groups and rounds* — because without them the product only

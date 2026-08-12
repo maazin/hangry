@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+
+import { siteUrl } from "@/lib/site";
 import "./globals.css";
 
 /**
@@ -16,6 +18,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // Without this, Open Graph URLs resolve against localhost and every link
+  // shared into a group chat unfurls pointing at nobody's machine.
+  metadataBase: siteUrl(),
   title: "Hangry — settle it",
   description:
     "Six people, one link, thirty seconds each. Hangry picks somewhere everyone can actually eat — and shows you what the popular answer would have cost.",
