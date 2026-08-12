@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #17130f;
+  --surface: #211b16;
+  --surface-2: #2b231c;
+  --border: #3a2f26;
+  --text: #f6efe7;
+  --muted: #b3a79b;
+  --accent: #f5a524;
+  --accent-ink: #241703;
+  --danger: #f2704f;
+  --warn: #e8b046;
+  --ok: #7fc79a;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  /* Joiners are on phones in a restaurant doorway; keep tap targets honest. */
+  font-size: 16px;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border p-4;
+    background: var(--surface);
+    border-color: var(--border);
+  }
+
+  .btn {
+    @apply w-full rounded-xl px-4 py-3.5 text-base font-semibold transition active:scale-[0.99] disabled:opacity-40;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .btn-ghost {
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .chip {
+    @apply rounded-full border px-3.5 py-2 text-sm font-medium transition;
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--muted);
+  }
+
+  .chip-on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+
+  .field {
+    @apply w-full rounded-xl border px-4 py-3 text-base outline-none;
+    background: var(--surface-2);
+    border-color: var(--border);
+    color: var(--text);
+  }
+
+  .field:focus {
+    border-color: var(--accent);
+  }
+
+  .label {
+    @apply mb-2 block text-sm font-semibold;
+    color: var(--muted);
+  }
+}
+
+/* dnd-kit lifts the dragged row; make it read as picked up. */
+.dragging {
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+  border-color: var(--accent) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

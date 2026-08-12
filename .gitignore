@@ -1,0 +1,23 @@
+# python
+api/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# node / next
+node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+*.tsbuildinfo
+
+# env — nothing with credentials in it goes near the remote
+.env
+.env.*
+!.env.example
+
+# local tooling
+.claude/
+.DS_Store
+*.log
