@@ -176,6 +176,27 @@ export function SessionView({ slug }: { slug: string }) {
 
   if (!joined) {
     if (state.status !== "collecting") {
+      // A round belongs to a group, so the fix is almost always "open the
+      // group link on this device", not "start over".
+      if (state.group_slug) {
+        return (
+          <main>
+            <Logo />
+            <Stopped
+              title="You're not in this round"
+              action={
+                <a className="btn btn-primary" href={`/g/${state.group_slug}`}>
+                  Open the group
+                </a>
+              }
+            >
+              This round is already going. If you&apos;re in the group, open the group link on this device and
+              you&apos;ll be able to rank — if you&apos;re not, that&apos;s where you join.
+            </Stopped>
+          </main>
+        );
+      }
+
       return (
         <main>
           <Logo />

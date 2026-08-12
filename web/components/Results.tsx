@@ -206,9 +206,15 @@ export function Results({ slug, state }: { slug: string; state: SessionState }) 
             restaurant if it matters.
           </Note>
         </div>
-        <a className="btn btn-secondary" href="/">
-          Start another
-        </a>
+        {state.group_slug ? (
+          <a className="btn btn-secondary" href={`/g/${state.group_slug}`}>
+            Back to the group
+          </a>
+        ) : (
+          <a className="btn btn-secondary" href="/">
+            Start another
+          </a>
+        )}
       </footer>
     </main>
   );

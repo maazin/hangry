@@ -10,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
-from app.models import Participant, Session
+from app.models import Group, Member, Participant, Session
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 
@@ -73,6 +73,65 @@ async def get_participant(
 
 
 CurrentParticipant = Annotated[Participant, Depends(get_participant)]
+
+
+async def get_group(slug: Annotated[str, Path()], db: DbSession) -> Group:
+    """Load a group by slug.
+
+    Unlike a session, a group does not expire on a clock. It is the thing the
+    group chat keeps in its pinned messages, so a link that dies after a
+    weekend would defeat the point.
+    """
+    result = await db.execute(select(Group).where(Group.slug == slug.upper()))
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise HTTPException(404, detail={"code": "unknown_group", "message": "No group with that link."})
+
+    group.last_active_at = datetime.now(UTC)
+    await db.commit()
+    return group
+
+
+CurrentGroup = Annotated[Group, Depends(get_group)]
+
+
+async def get_member_optional(
+    group: CurrentGroup,
+    db: DbSession,
+    x_participant_token: Annotated[str | None, Header()] = None,
+) -> Member | None:
+    """Resolve the caller within a group, if they're in it.
+
+    Deliberately the same header as the participant token: a member's group
+    token *is* their token in every round, so a phone stores one string per
+    group and never has to reconcile two identities.
+    """
+    if not x_participant_token:
+        return None
+
+    result = await db.execute(
+        select(Member).where(Member.group_id == group.id, Member.token == x_participant_token)
+    )
+    member = result.scalar_one_or_none()
+    if member is not None:
+        member.last_seen_at = datetime.now(UTC)
+        await db.commit()
+    return member
+
+
+OptionalMember = Annotated[Member | None, Depends(get_member_optional)]
+
+
+async def require_member(member: OptionalMember) -> Member:
+    if member is None:
+        raise HTTPException(
+            403,
+            detail={"code": "not_a_member", "message": "Join the group before doing that."},
+        )
+    return member
+
+
+CurrentMember = Annotated[Member, Depends(require_member)]
 
 
 async def require_creator(participant: CurrentParticipant) -> Participant:

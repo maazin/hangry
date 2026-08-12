@@ -7,6 +7,7 @@ from sqlalchemy import text
 from app.config import settings
 from app.db import engine
 from app.routes import router
+from app.routes_groups import router as groups_router
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
@@ -25,6 +26,7 @@ app.add_middleware(
 )
 
 app.include_router(router)
+app.include_router(groups_router)
 
 
 @app.get("/api/health")

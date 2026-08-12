@@ -85,9 +85,50 @@ export interface You {
   has_ranked: boolean;
 }
 
+/** Someone in a group. Their constraints persist between meals. */
+export interface Member {
+  id: string;
+  display_name: string;
+  is_founder: boolean;
+  hard_constraints: HardConstraints;
+  joined_at: string;
+}
+
+export interface RoundSummary {
+  slug: string;
+  status: SessionStatus;
+  created_at: string;
+  expires_at: string;
+  participants: number;
+  submitted: number;
+  winner: string | null;
+}
+
+export interface GroupState {
+  slug: string;
+  name: string;
+  created_at: string;
+  members: Member[];
+  rounds: RoundSummary[];
+  /** The round still being decided. Null means the group page is a launcher. */
+  active_round: RoundSummary | null;
+  advisories: Advisory[];
+  you: { member_id: string; display_name: string; is_founder: boolean } | null;
+}
+
+export interface RoundCreated {
+  slug: string;
+  status: SessionStatus;
+  candidates: Candidate[];
+  advisories: Advisory[];
+  unverified_used: boolean;
+}
+
 export interface SessionState {
   slug: string;
   status: SessionStatus;
+  /** Set when this session is a round in a group. */
+  group_slug: string | null;
   radius_m: number;
   center_lat: number | null;
   center_lon: number | null;

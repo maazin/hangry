@@ -62,11 +62,70 @@ class TileCache(Base):
     fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class Group(Base):
+    """A set of people who eat together, and the link that identifies them.
+
+    The thing sessions are not: durable. A session evaporates in 24 hours,
+    which means every meal starts by re-collecting six people's names,
+    locations and dietary needs. A group remembers them, so the second meal
+    costs almost no taps — which is the only metric in the PRD that matters.
+
+    Still no accounts. The group *is* its link, and membership is the same
+    opaque token model used for participants.
+    """
+
+    __tablename__ = "groups"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    slug: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    name: Mapped[str] = mapped_column(String(60), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Refreshed on every visit; a group only dies after a long silence.
+    last_active_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    members: Mapped[list[Member]] = relationship(
+        back_populates="group", cascade="all, delete-orphan", lazy="selectin"
+    )
+
+
+class Member(Base):
+    """Someone in a group, and the constraints they don't want to retype.
+
+    `hard_constraints` here is the durable copy. Each round snapshots it onto
+    a Participant, so editing your diet later never rewrites a decision the
+    group already made.
+    """
+
+    __tablename__ = "members"
+
+    id: Mapped[uuid.UUID] = _uuid_pk()
+    group_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False
+    )
+    token: Mapped[str] = mapped_column(Text, nullable=False)
+    display_name: Mapped[str] = mapped_column(String(40), nullable=False)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lon: Mapped[float] = mapped_column(Float, nullable=False)
+    hard_constraints: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    is_founder: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    group: Mapped[Group] = relationship(back_populates="members")
+
+    __table_args__ = (Index("members_group_token_idx", "group_id", "token", unique=True),)
+
+
 class Session(Base):
+    """One decision. Called a "round" once it belongs to a group."""
+
     __tablename__ = "sessions"
 
     id: Mapped[uuid.UUID] = _uuid_pk()
     slug: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    group_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=True
+    )
     # collecting | ranking | decided | expired
     status: Mapped[str] = mapped_column(Text, nullable=False, default="collecting")
     center_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -75,6 +134,7 @@ class Session(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
+    group: Mapped[Group | None] = relationship(lazy="selectin")
     participants: Mapped[list[Participant]] = relationship(
         back_populates="session", cascade="all, delete-orphan", lazy="selectin"
     )
@@ -99,6 +159,12 @@ class Participant(Base):
     lon: Mapped[float] = mapped_column(Float, nullable=False)
     hard_constraints: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     is_creator: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Set when this participant came from a group member. The snapshot above
+    # is deliberately a copy, not a join — a past decision must stay readable
+    # as it was made, even after someone edits their diet.
+    member_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("members.id", ondelete="SET NULL"), nullable=True
+    )
     joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     session: Mapped[Session] = relationship(back_populates="participants")

@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ConstraintForm } from "@/components/ConstraintForm";
 import { Logo } from "@/components/Logo";
-import { Check } from "@/components/icons";
-import { api, writeToken, type JoinPayload } from "@/lib/api";
+import { ArrowRight, Check, Users } from "@/components/icons";
+import { api, listGroups, rememberGroup, writeToken, type JoinPayload } from "@/lib/api";
 import { ApiError } from "@/lib/types";
 
 const PROMISES = ["No signup", "No download", "One link"];
@@ -15,16 +15,23 @@ export default function CreatePage() {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [groupName, setGroupName] = useState("");
+  const [mine, setMine] = useState<{ slug: string; name: string }[]>([]);
 
-  async function create(payload: JoinPayload, radiusM: number) {
+  // localStorage is client-only, so this can't be initial state without
+  // tripping hydration.
+  useEffect(() => setMine(listGroups()), []);
+
+  async function create(payload: JoinPayload) {
     setBusy(true);
     setError(null);
     try {
-      const session = await api.createSession(payload, radiusM);
-      writeToken(session.slug, session.token);
-      router.push(`/s/${session.slug}`);
+      const group = await api.createGroup(groupName.trim() || "Dinner", payload);
+      writeToken(group.slug, group.token);
+      rememberGroup(group.slug, groupName.trim() || "Dinner");
+      router.push(`/g/${group.slug}`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't start a session. Try again.");
+      setError(e instanceof ApiError ? e.message : "Couldn't start a group. Try again.");
       setBusy(false);
     }
   }
@@ -32,6 +39,23 @@ export default function CreatePage() {
   return (
     <main>
       <Logo />
+
+      {mine.length > 0 ? (
+        <section className="mb-8">
+          <h2 className="label">Your groups</h2>
+          <ul className="card divide-y overflow-hidden">
+            {mine.map((group) => (
+              <li key={group.slug} style={{ borderColor: "var(--border)" }}>
+                <a className="flex items-center gap-3 px-4 py-3.5" href={`/g/${group.slug}`}>
+                  <Users size={18} style={{ color: "var(--brand)" }} />
+                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{group.name}</span>
+                  <ArrowRight size={17} style={{ color: "var(--text-3)" }} />
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="mb-8">
         <h1 className="text-[34px] font-bold leading-[1.08]">
@@ -57,7 +81,32 @@ export default function CreatePage() {
 
       <div className="divider mb-8" />
 
-      <ConstraintForm mode="create" busy={busy} error={error} onSubmit={create} />
+      <ConstraintForm
+        mode="join"
+        busy={busy}
+        error={error}
+        submitLabel="Create the group"
+        onSubmit={create}
+        prelude={
+          <div>
+            <label className="label" htmlFor="group-name">
+              What&apos;s the group?
+            </label>
+            <input
+              id="group-name"
+              className="field"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              placeholder="Thursday dinner"
+              maxLength={60}
+            />
+            <p className="mt-2 text-[13px]" style={{ color: "var(--text-3)" }}>
+              You&apos;ll get one link to share. Everyone says what they can&apos;t eat once, and it&apos;s remembered
+              for every meal after.
+            </p>
+          </div>
+        }
+      />
     </main>
   );
 }

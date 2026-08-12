@@ -1,7 +1,10 @@
 import {
   ApiError,
   type BindingConstraint,
+  type GroupState,
   type HardConstraints,
+  type Member,
+  type RoundCreated,
   type SessionResult,
   type SessionState,
 } from "./types";
@@ -26,6 +29,39 @@ export function writeToken(slug: string, token: string) {
 
 export function clearToken(slug: string) {
   window.localStorage.removeItem(tokenKey(slug));
+}
+
+/**
+ * A member's group token *is* their token in every round, so copying it onto
+ * the round slug lets the round page authenticate with no extra concept —
+ * one string per group on the phone, not one per meal.
+ */
+export function adoptTokenForRound(groupSlug: string, roundSlug: string) {
+  const token = readToken(groupSlug);
+  if (token && readToken(roundSlug) !== token) writeToken(roundSlug, token);
+}
+
+/** Groups the phone has joined, newest first — the "my groups" list. */
+const GROUPS_KEY = "hangry:groups";
+
+export function rememberGroup(slug: string, name: string) {
+  if (typeof window === "undefined") return;
+  const existing = listGroups().filter((g) => g.slug !== slug);
+  window.localStorage.setItem(GROUPS_KEY, JSON.stringify([{ slug, name }, ...existing].slice(0, 12)));
+}
+
+export function listGroups(): { slug: string; name: string }[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(GROUPS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function forgetGroup(slug: string) {
+  window.localStorage.setItem(GROUPS_KEY, JSON.stringify(listGroups().filter((g) => g.slug !== slug)));
 }
 
 async function request<T>(path: string, init: RequestInit = {}, token?: string | null): Promise<T> {
@@ -67,6 +103,8 @@ async function request<T>(path: string, init: RequestInit = {}, token?: string |
     throw new ApiError(response.status, code, message, binding);
   }
 
+  // 204 carries no body, so parsing one would throw on success.
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -109,6 +147,35 @@ export const api = {
 
   solve: (slug: string, token: string) =>
     request<SessionResult>(`/api/sessions/${slug}/solve`, { method: "POST" }, token),
+
+  // ---- groups -----------------------------------------------------------
+
+  createGroup: (name: string, founder: JoinPayload) =>
+    request<{ slug: string; member_id: string; token: string }>("/api/groups", {
+      method: "POST",
+      body: JSON.stringify({ name, founder }),
+    }),
+
+  getGroup: (slug: string, token?: string | null) => request<GroupState>(`/api/groups/${slug}`, {}, token),
+
+  joinGroup: (slug: string, body: JoinPayload) =>
+    request<{ slug: string; member_id: string; token: string }>(`/api/groups/${slug}/members`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateMember: (slug: string, token: string, body: Partial<JoinPayload>) =>
+    request<Member>(`/api/groups/${slug}/members/me`, { method: "PATCH", body: JSON.stringify(body) }, token),
+
+  leaveGroup: (slug: string, token: string) =>
+    request<void>(`/api/groups/${slug}/members/me`, { method: "DELETE" }, token),
+
+  startRound: (slug: string, token: string, memberIds: string[] | null, radiusM: number) =>
+    request<RoundCreated>(
+      `/api/groups/${slug}/rounds`,
+      { method: "POST", body: JSON.stringify({ member_ids: memberIds, radius_m: radiusM }) },
+      token,
+    ),
 };
 
 /** Browser geolocation, wrapped so the caller gets a plain promise. */

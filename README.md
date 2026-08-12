@@ -43,7 +43,7 @@ Then open http://localhost:3000. `GET /api/health` should return
 cd api && .venv/bin/python -m pytest -q
 ```
 
-126 tests, against a real Postgres (`hangry_test`, created automatically) —
+147 tests, against a real Postgres (`hangry_test`, created automatically) —
 not SQLite. The schema leans on JSONB, `text[]` and native uuid, and a filter
 whose entire job is keeping `null` distinct from `"no"` should not be
 validated on a database with different null semantics than production.
@@ -57,6 +57,46 @@ python3 aggregate.py    # runs the six-person fixture standalone, no deps
 ```
 
 ---
+
+## Groups and rounds
+
+A **group** is a set of people and a permanent link. A **round** is one meal.
+
+```
+group  (permanent link, remembers who and what they can't eat)
+  └── round  (24h, one decision)  ×  as many meals as you like
+```
+
+The first version had only rounds, and it showed: a session evaporated after
+24 hours, so every meal began by re-collecting six names, six locations and
+six sets of dietary constraints. That is the difference between a demo and
+something a group actually uses on a Thursday.
+
+**Still no accounts.** The group *is* its link. Membership is the same opaque
+`localStorage` token used for participants — and deliberately the *same
+token*, so a member's group token authenticates them inside every round and a
+phone stores exactly one string per group.
+
+**The payoff is round two.** Everyone's constraints are already known, so
+starting a round skips joining and the constraint form entirely and goes
+straight to ranking. Any member can start one, not just whoever created the
+group — the people who eat together are peers.
+
+**Who's eating.** A round defaults to the whole group, and the starter can
+drop anyone who isn't coming. This is not cosmetic: applying an absent
+member's dietary constraint would narrow the options for a meal they aren't
+at. It also cuts the other way — with a celiac and a halal member excluded
+from a test round, the candidate set went from *entirely unverified* to
+fully verified, because there were fewer questions the sparse OSM data had to
+answer.
+
+**Constraints are snapshotted, not joined.** A round copies each member's
+constraints when it starts, so editing your diet later never rewrites a
+decision the group already made. Past results stay readable as they were
+actually decided.
+
+One round runs at a time per group. Two concurrent rounds would split the
+group across two ballots, which is the failure this product exists to end.
 
 ## The algorithm
 
@@ -226,19 +266,23 @@ api/
     feasibility.py        Stage 1, tiers, cut reasons, relaxation
     osm.py                Overpass client, tag mapping, tile cache
     geo.py                geohash, haversine, centroid
-    routes.py             every endpoint
+    routes.py             sessions/rounds
+    routes_groups.py      groups, members, starting rounds
     models.py schemas.py deps.py db.py config.py slug.py main.py
-  alembic/versions/       0001 sessions · 0002 places · 0003 rankings · 0004 locked
-  tests/                  126 tests
+  alembic/versions/       0001 sessions · 0002 places · 0003 rankings
+                          0004 locked   · 0005 groups and members
+  tests/                  147 tests
 web/
   app/
-    page.tsx              / — create a session
-    s/[slug]/page.tsx     everything else, driven by session status
+    page.tsx              / — create a group, and your groups list
+    g/[slug]/page.tsx     the group: roster, invite, start a round
+    s/[slug]/page.tsx     one round, driven by its status
     globals.css           design tokens and component classes
     layout.tsx            font, metadata, theme colour
     icon.svg  opengraph-image.tsx  apple-icon.tsx
   components/
-    SessionView.tsx       the state machine: join → lobby → rank → result
+    GroupView.tsx         roster, invite, start a round
+    SessionView.tsx       one round: join → lobby → rank → result
     ConstraintForm.tsx    the joiner's entire flow
     Lobby.tsx  RankingList.tsx  Results.tsx
     Logo.tsx  icons.tsx  ui.tsx
@@ -249,13 +293,28 @@ web/
 
 ```
 GET    /api/health
+
+# groups — the durable layer
+POST   /api/groups                       create + enrol founder
+GET    /api/groups/{slug}                roster, history, live round
+POST   /api/groups/{slug}/members        join; anyone with the link, no closing time
+PATCH  /api/groups/{slug}/members/me     change your own details (partial)
+DELETE /api/groups/{slug}/members/me     leave; past rounds keep the snapshot
+POST   /api/groups/{slug}/rounds         start a round   409 if one is live
+                                         → creates it *and* runs the solve setup
+
+# rounds (also usable standalone, without a group)
 POST   /api/sessions                     create + enrol creator
 GET    /api/sessions/{slug}              full state; X-Participant-Token optional
 POST   /api/sessions/{slug}/participants join            409 once started
 POST   /api/sessions/{slug}/start        creator only    422 + binding_constraints
 POST   /api/sessions/{slug}/rankings     participant     auto-solves on the last one
-POST   /api/sessions/{slug}/solve        creator only, forces an early decision
+POST   /api/sessions/{slug}/solve        round creator, forces an early decision
 ```
+
+`POST /rounds` both creates the round and runs the feasibility filter.
+Everyone's constraints are already known, so making someone tap "start"
+afterwards would re-ask a question the group already answered.
 
 Auth is one opaque token per participant per session, in `localStorage`,
 sent as `X-Participant-Token`. Not real auth — it stops accidental
@@ -275,7 +334,9 @@ Two deviations from the PRD's contract, both deliberate:
 - **Deploy.** Phase 0 asks for both apps live on day zero. That needs
   Vercel/Fly accounts, so it is yours to run — nothing else is blocking it.
 - **WebSockets** (Phase 5). Polling every 3s, as the PRD specifies for v1.
-- **Isochrones, PostGIS, Foursquare, saved groups** (Phases 6–8).
+- **Isochrones, PostGIS, Foursquare** (Phases 6–7). Saved groups landed
+  early — see *Groups and rounds* — because without them the product only
+  worked once per set of friends.
 - **Analytics.** No third-party script was added without asking. The numbers
   the PRD wants are all derivable from `sessions`, `participants` and
   `results`.

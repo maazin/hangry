@@ -17,11 +17,16 @@ export function ConstraintForm({
   mode,
   busy,
   error,
+  prelude,
+  submitLabel,
   onSubmit,
 }: {
   mode: "create" | "join";
   busy: boolean;
   error: string | null;
+  /** Rendered inside the form, above the name — e.g. the group's own name. */
+  prelude?: React.ReactNode;
+  submitLabel?: string;
   onSubmit: (payload: JoinPayload, radiusM: number) => void;
 }) {
   const [name, setName] = useState("");
@@ -90,6 +95,8 @@ export function ConstraintForm({
 
   return (
     <form onSubmit={submit} className="space-y-7">
+      {prelude}
+
       <div>
         <label className="label" htmlFor="name">
           Your name
@@ -260,7 +267,7 @@ export function ConstraintForm({
         <ErrorNote>{localError ?? error}</ErrorNote>
 
         <button className="btn btn-primary" disabled={busy || !name.trim() || !coords}>
-          {busy ? "One sec…" : mode === "create" ? "Get the link" : "I'm in"}
+          {busy ? "One sec…" : (submitLabel ?? (mode === "create" ? "Get the link" : "I'm in"))}
         </button>
 
         {!coords ? (

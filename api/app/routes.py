@@ -122,6 +122,7 @@ async def _build_state(db: DbSession, session: Session, viewer_token: str | None
     return SessionState(
         slug=session.slug,
         status=session.status,
+        group_slug=session.group.slug if session.group else None,
         radius_m=session.radius_m,
         center_lat=session.center_lat,
         center_lon=session.center_lon,
@@ -240,6 +241,16 @@ async def join_session(body: ParticipantIn, session: CurrentSession, db: DbSessi
 @router.post("/sessions/{slug}/start", response_model=StartResult)
 async def start_session(session: CurrentSession, db: DbSession, creator: Creator) -> StartResult:
     """Fetch places, run the feasibility filter, lock the candidate set."""
+    return await run_start(db, session)
+
+
+async def run_start(db: DbSession, session: Session) -> StartResult:
+    """The solve setup, callable outside the request that owns the session.
+
+    A group round starts itself the moment it is created — everyone's
+    constraints are already known, so making someone tap "start" again would
+    be asking a question the group already answered.
+    """
     if session.status != "collecting":
         raise HTTPException(409, detail={"code": "already_started", "message": "Already started."})
 

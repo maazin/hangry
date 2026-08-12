@@ -107,6 +107,9 @@ class You(BaseModel):
 class SessionState(BaseModel):
     slug: str
     status: str
+    # Set when this session is a round in a group. Lets a round page send
+    # someone home when their phone has no token for it.
+    group_slug: str | None = None
     radius_m: int
     center_lat: float | None
     center_lon: float | None
@@ -127,6 +130,92 @@ class StartResult(BaseModel):
     eliminated_count: int = 0
     # True when the vote is running on candidates the data couldn't verify.
     # The UI must say so; it changes what the result means.
+    unverified_used: bool = False
+
+
+# --------------------------------------------------------------------------
+# groups — the durable layer
+# --------------------------------------------------------------------------
+
+
+class GroupCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=60)
+    founder: ParticipantIn
+
+
+class GroupCreated(BaseModel):
+    slug: str
+    member_id: uuid.UUID
+    token: str
+
+
+class MemberOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    display_name: str
+    is_founder: bool
+    hard_constraints: dict
+    joined_at: datetime
+
+
+class MemberUpdate(BaseModel):
+    """Everything optional — this is used both to move location before a
+    round and to correct a diet, and neither should require resending the
+    other."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    lat: float | None = Field(default=None, ge=-90, le=90)
+    lon: float | None = Field(default=None, ge=-180, le=180)
+    hard_constraints: HardConstraints | None = None
+
+
+class RoundSummary(BaseModel):
+    slug: str
+    status: str
+    created_at: datetime
+    expires_at: datetime
+    participants: int
+    submitted: int
+    winner: str | None = None
+
+
+class GroupYou(BaseModel):
+    member_id: uuid.UUID
+    display_name: str
+    is_founder: bool
+
+
+class GroupState(BaseModel):
+    slug: str
+    name: str
+    created_at: datetime
+    members: list[MemberOut]
+    rounds: list[RoundSummary] = Field(default_factory=list)
+    # The round still being decided, if there is one. The group page is a
+    # launcher when this is null and a signpost when it isn't.
+    active_round: RoundSummary | None = None
+    advisories: list[dict] = Field(default_factory=list)
+    you: GroupYou | None = None
+
+
+class RoundCreate(BaseModel):
+    """Who's actually eating tonight.
+
+    Absent `member_ids` means everyone. Naming a subset matters: including a
+    member who isn't coming would apply their dietary constraints to a meal
+    they aren't at, which narrows the options for no reason.
+    """
+
+    member_ids: list[uuid.UUID] | None = None
+    radius_m: int = Field(default=5000, ge=500, le=25_000)
+
+
+class RoundCreated(BaseModel):
+    slug: str
+    status: str
+    candidates: list[CandidateOut]
+    advisories: list[dict] = Field(default_factory=list)
     unverified_used: bool = False
 
 
