@@ -23,30 +23,41 @@ import { useState } from "react";
 
 import { metres } from "@/lib/constraints";
 import type { Candidate, SessionState } from "@/lib/types";
-import { ErrorNote, Note, Wordmark } from "./ui";
+import { Logo } from "./Logo";
+import { ChevronDown, ChevronUp, Grip } from "./icons";
+import { Callout, ErrorNote, Note } from "./ui";
 
 function Row({
   candidate,
   index,
   total,
+  showTier,
   onMove,
 }: {
   candidate: Candidate;
   index: number;
   total: number;
+  /** Only when the list is mixed — see the call site. */
+  showTier: boolean;
   onMove: (from: number, to: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: candidate.id });
+
+  const meta = [candidate.cuisine.slice(0, 2).join(", "), metres(candidate.distance_m)].filter(Boolean).join(" · ");
 
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`card flex touch-none items-center gap-3 ${isDragging ? "dragging" : ""}`}
+      className={`row touch-none py-3 ${isDragging ? "dragging" : ""}`}
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-        style={{ background: "var(--accent)", color: "var(--accent-ink)" }}
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold tabular-nums"
+        style={
+          index === 0
+            ? { background: "var(--brand)", color: "var(--on-brand)" }
+            : { background: "var(--surface-2)", color: "var(--text-2)" }
+        }
       >
         {index + 1}
       </span>
@@ -54,53 +65,51 @@ function Row({
       <div className="min-w-0 flex-1">
         {/* The badge sits outside the truncating span on purpose — a long
             restaurant name must never be able to clip the safety label. */}
-        <div className="flex items-baseline gap-2">
-          <span className="truncate font-semibold">{candidate.name}</span>
-          {candidate.tier === "unverified" ? (
-            <span className="shrink-0 text-[10px] font-bold uppercase" style={{ color: "var(--warn)" }}>
-              unverified
-            </span>
-          ) : null}
+        <div className="flex items-center gap-2">
+          <span className="truncate text-[15px] font-semibold">{candidate.name}</span>
+          {showTier ? <span className="badge badge-warn shrink-0">unverified</span> : null}
         </div>
-        <p className="truncate text-xs" style={{ color: "var(--muted)" }}>
-          {[candidate.cuisine.slice(0, 2).join(", "), metres(candidate.distance_m)].filter(Boolean).join(" · ")}
-        </p>
+        {meta ? (
+          <p className="truncate text-[13px]" style={{ color: "var(--text-3)" }}>
+            {meta}
+          </p>
+        ) : null}
       </div>
 
-      {/* Arrows are not a fallback — dragging is genuinely hard one-handed on
-          a phone, and impossible with a screen reader. */}
-      <div className="flex shrink-0 flex-col gap-1">
+      {/* Arrows aren't a fallback — dragging is genuinely hard one-handed on a
+          phone and impossible with a screen reader. */}
+      <div className="flex shrink-0 flex-col">
         <button
           type="button"
           aria-label={`Move ${candidate.name} up`}
-          className="rounded-lg px-2 py-0.5 text-xs disabled:opacity-25"
-          style={{ background: "var(--surface-2)" }}
+          className="flex h-7 w-8 items-center justify-center rounded-sm disabled:opacity-20"
+          style={{ color: "var(--text-2)" }}
           disabled={index === 0}
           onClick={() => onMove(index, index - 1)}
         >
-          ▲
+          <ChevronUp size={18} />
         </button>
         <button
           type="button"
           aria-label={`Move ${candidate.name} down`}
-          className="rounded-lg px-2 py-0.5 text-xs disabled:opacity-25"
-          style={{ background: "var(--surface-2)" }}
+          className="flex h-7 w-8 items-center justify-center rounded-sm disabled:opacity-20"
+          style={{ color: "var(--text-2)" }}
           disabled={index === total - 1}
           onClick={() => onMove(index, index + 1)}
         >
-          ▼
+          <ChevronDown size={18} />
         </button>
       </div>
 
       <button
         type="button"
-        className="shrink-0 cursor-grab px-1 text-lg active:cursor-grabbing"
-        style={{ color: "var(--muted)" }}
+        className="-mr-1 shrink-0 cursor-grab touch-none px-1 active:cursor-grabbing"
+        style={{ color: "var(--text-3)" }}
         aria-label={`Reorder ${candidate.name}`}
         {...attributes}
         {...listeners}
       >
-        ⠿
+        <Grip size={20} />
       </button>
     </li>
   );
@@ -145,29 +154,29 @@ export function RankingList({
   const unverified = state.candidates.filter((c) => c.tier === "unverified" && !c.locked);
   const eliminated = state.candidates.filter((c) => c.tier === "eliminated");
   const flaggedInVote = order.some((c) => c.tier === "unverified");
+  // When everything in the vote is unverified — the usual case on real OSM
+  // data — a badge on every row says nothing the banner hasn't, and eats the
+  // restaurant name, which is the one thing people need to read to rank.
+  // It earns its place only when the list is actually mixed.
+  const mixedTiers = flaggedInVote && order.some((c) => c.tier === "feasible");
 
   return (
     <main>
-      <Wordmark tagline="Best at the top. That's the whole job." />
+      <Logo tagline="Drag your favourite to the top. That's the whole job." />
 
       {flaggedInVote ? (
-        <div className="card mb-4" style={{ borderColor: "var(--warn)" }}>
-          <p className="text-sm font-bold" style={{ color: "var(--warn)" }}>
-            Read this before you rank
-          </p>
-          <div className="mt-1">
-            <Note tone="warn">
-              The map data couldn&apos;t confirm everyone&apos;s dietary requirements at these places, so they&apos;re
-              marked <strong>unverified</strong> rather than left out. None of them is confirmed safe — whoever has the
-              restriction should call ahead.
-            </Note>
-          </div>
+        <div className="mb-5">
+          <Callout title="Read this before you rank">
+            The map data couldn&apos;t confirm everyone&apos;s dietary requirements at these places, so they&apos;re
+            marked <strong>unverified</strong> rather than left out. None of them is confirmed safe — whoever has the
+            restriction should call ahead.
+          </Callout>
         </div>
       ) : (
-        <div className="mb-4">
+        <div className="mb-5">
           <Note>
-            These are the only places that work for everyone&apos;s requirements. Drag them into your order —
-            you&apos;re ranking, not rating, so nobody can shout louder by scoring everything 1.
+            These all work for everyone&apos;s requirements. You&apos;re ranking, not rating — so nobody can shout
+            louder by scoring everything 1.
           </Note>
         </div>
       )}
@@ -179,9 +188,16 @@ export function RankingList({
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
         <SortableContext items={order.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-          <ul className="mb-5 space-y-2">
+          <ul className="mb-6 space-y-2">
             {order.map((candidate, index) => (
-              <Row key={candidate.id} candidate={candidate} index={index} total={order.length} onMove={move} />
+              <Row
+                key={candidate.id}
+                candidate={candidate}
+                index={index}
+                total={order.length}
+                showTier={mixedTiers && candidate.tier === "unverified"}
+                onMove={move}
+              />
             ))}
           </ul>
         </SortableContext>
@@ -198,19 +214,19 @@ export function RankingList({
       </div>
 
       {unverified.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--warn)" }}>
-            Couldn&apos;t verify
-          </h2>
-          <Note tone="warn">
-            The map data doesn&apos;t say either way for these, so they&apos;re out of the vote rather than assumed fine.
-          </Note>
-          <ul className="mt-3 space-y-2">
+        <section className="mt-10">
+          <h2 className="label">Couldn&apos;t verify</h2>
+          <div className="mb-3">
+            <Note>The data doesn&apos;t say either way for these, so they&apos;re out of the vote rather than assumed fine.</Note>
+          </div>
+          <ul className="space-y-2">
             {unverified.map((candidate) => (
-              <li key={candidate.id} className="card" style={{ borderColor: "var(--warn)" }}>
-                <p className="font-semibold">{candidate.name}</p>
+              <li key={candidate.id} className="panel-warn p-4">
+                <p className="text-[15px] font-semibold" style={{ color: "var(--warn)" }}>
+                  {candidate.name}
+                </p>
                 {candidate.cut_reasons.map((reason, index) => (
-                  <p key={index} className="mt-1 text-xs" style={{ color: "var(--warn)" }}>
+                  <p key={index} className="mt-1 text-[13px]" style={{ color: "var(--warn)" }}>
                     {reason.detail}
                   </p>
                 ))}
@@ -221,19 +237,19 @@ export function RankingList({
       ) : null}
 
       {eliminated.length > 0 ? (
-        <section className="mt-8">
-          <h2 className="mb-2 text-sm font-bold uppercase tracking-wide" style={{ color: "var(--muted)" }}>
-            {eliminated.length} ruled out
-          </h2>
-          <ul className="space-y-2">
+        <section className="mt-10">
+          <h2 className="label">{eliminated.length} ruled out</h2>
+          <ul className="card divide-y overflow-hidden" style={{ borderColor: "var(--border)" }}>
             {eliminated.slice(0, 8).map((candidate) => {
               const cut = candidate.cut_reasons.find((r) => r.kind === "eliminated");
               return (
-                <li key={candidate.id} className="flex items-baseline justify-between gap-3 rounded-xl px-3 py-2 text-sm" style={{ background: "var(--surface)" }}>
-                  <span style={{ color: "var(--muted)" }}>{candidate.name}</span>
-                  <span className="text-right text-xs" style={{ color: "var(--muted)" }}>
+                <li key={candidate.id} className="px-4 py-3" style={{ borderColor: "var(--border)" }}>
+                  <p className="text-[14px] font-medium" style={{ color: "var(--text-2)" }}>
+                    {candidate.name}
+                  </p>
+                  <p className="text-[13px]" style={{ color: "var(--text-3)" }}>
                     {cut?.detail ?? "ruled out"}
-                  </span>
+                  </p>
                 </li>
               );
             })}

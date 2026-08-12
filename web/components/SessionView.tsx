@@ -6,9 +6,10 @@ import { api, readToken, writeToken, type JoinPayload } from "@/lib/api";
 import { ApiError, type SessionState } from "@/lib/types";
 import { ConstraintForm } from "./ConstraintForm";
 import { Lobby } from "./Lobby";
+import { Logo } from "./Logo";
 import { RankingList } from "./RankingList";
 import { Results } from "./Results";
-import { ErrorNote, Note, Skeleton, Wordmark } from "./ui";
+import { ErrorNote, Note, Progress, Skeleton, Stopped } from "./ui";
 
 const POLL_MS = 3000;
 
@@ -120,14 +121,17 @@ export function SessionView({ slug }: { slug: string }) {
   if (fatal?.status === 410) {
     return (
       <main>
-        <Wordmark />
-        <div className="card space-y-3">
-          <h2 className="text-xl font-bold">This one&apos;s expired</h2>
-          <Note>Sessions last 24 hours and then delete themselves. Nothing to recover — start a fresh one.</Note>
-          <a className="btn btn-primary block text-center" href="/">
-            Start a new session
-          </a>
-        </div>
+        <Logo />
+        <Stopped
+          title="This one's expired"
+          action={
+            <a className="btn btn-primary" href="/">
+              Start a new session
+            </a>
+          }
+        >
+          Sessions last 24 hours and then delete themselves. Nothing to recover — start a fresh one.
+        </Stopped>
       </main>
     );
   }
@@ -135,14 +139,17 @@ export function SessionView({ slug }: { slug: string }) {
   if (fatal?.status === 404) {
     return (
       <main>
-        <Wordmark />
-        <div className="card space-y-3">
-          <h2 className="text-xl font-bold">No session here</h2>
-          <Note>That link doesn&apos;t match anything. Check you copied all of it.</Note>
-          <a className="btn btn-ghost block text-center" href="/">
-            Start your own
-          </a>
-        </div>
+        <Logo />
+        <Stopped
+          title="No session here"
+          action={
+            <a className="btn btn-secondary" href="/">
+              Start your own
+            </a>
+          }
+        >
+          That link doesn&apos;t match anything. Check you copied all of it.
+        </Stopped>
       </main>
     );
   }
@@ -150,7 +157,7 @@ export function SessionView({ slug }: { slug: string }) {
   if (!state) {
     return (
       <main>
-        <Wordmark />
+        <Logo />
         <Skeleton rows={3} />
       </main>
     );
@@ -171,24 +178,31 @@ export function SessionView({ slug }: { slug: string }) {
     if (state.status !== "collecting") {
       return (
         <main>
-          <Wordmark />
-          <div className="card space-y-3">
-            <h2 className="text-xl font-bold">They&apos;ve already started</h2>
-            <Note>
-              This group locked in their options before you opened the link. Joining now would change what everyone else
-              already ranked, so you&apos;ll need a new session.
-            </Note>
-            <a className="btn btn-ghost block text-center" href="/">
-              Start one
-            </a>
-          </div>
+          <Logo />
+          <Stopped
+            title="They've already started"
+            action={
+              <a className="btn btn-secondary" href="/">
+                Start one
+              </a>
+            }
+          >
+            This group locked in their options before you opened the link. Joining now would change what everyone else
+            already ranked, so you&apos;ll need a new session.
+          </Stopped>
         </main>
       );
     }
 
     return (
       <main>
-        <Wordmark tagline={`${state.participants.length} already in. Takes about 30 seconds.`} />
+        <Logo
+          tagline={
+            state.participants.length === 1
+              ? "One person's waiting on you. Takes about 30 seconds."
+              : `${state.participants.length} already in. Takes about 30 seconds.`
+          }
+        />
         <ConstraintForm mode="join" busy={busy} error={error} onSubmit={(payload) => join(payload)} />
       </main>
     );
@@ -211,29 +225,36 @@ export function SessionView({ slug }: { slug: string }) {
 
   // Comes from the server, so a reload doesn't ask for a ranking twice.
   if (me?.has_ranked) {
+    const waiting = state.participants.length - state.submitted;
     return (
       <main>
-        <Wordmark tagline="Sent. Waiting on the rest." />
-        <div className="card space-y-3">
-          <p className="text-lg font-bold">
+        <Logo tagline="Sent. Waiting on the rest." />
+        <div className="card p-5">
+          <p className="text-[22px] font-bold tabular-nums">
             {state.submitted} of {state.participants.length} have ranked
           </p>
-          <div className="h-2 w-full overflow-hidden rounded-full" style={{ background: "var(--surface-2)" }}>
-            <div
-              className="h-full rounded-full transition-all"
-              style={{
-                width: `${(state.submitted / Math.max(state.participants.length, 1)) * 100}%`,
-                background: "var(--accent)",
-              }}
-            />
+          <div className="mt-4">
+            <Progress value={state.submitted} max={state.participants.length} />
           </div>
-          <Note>The result appears here the moment the last person finishes.</Note>
-          {isCreator && state.submitted > 0 ? (
-            <button className="btn btn-ghost" onClick={forceSolve} disabled={busy}>
-              Decide now without the stragglers
+          <div className="mt-4">
+            <Note>
+              {waiting > 0
+                ? "The result appears here the moment the last person finishes."
+                : "Working out the fairest option…"}
+            </Note>
+          </div>
+
+          {isCreator && state.submitted > 0 && waiting > 0 ? (
+            <button className="btn btn-secondary mt-5" onClick={forceSolve} disabled={busy}>
+              Decide without the stragglers
             </button>
           ) : null}
-          <ErrorNote>{error}</ErrorNote>
+
+          {error ? (
+            <div className="mt-4">
+              <ErrorNote>{error}</ErrorNote>
+            </div>
+          ) : null}
         </div>
       </main>
     );

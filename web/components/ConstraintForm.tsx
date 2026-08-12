@@ -4,12 +4,14 @@ import { useState } from "react";
 
 import { geocode, locate, type JoinPayload } from "@/lib/api";
 import { DIET_CHIPS, DISTANCE_OPTIONS, RADIUS_OPTIONS } from "@/lib/constraints";
-import { ErrorNote, Note } from "./ui";
+import { Check, Pin } from "./icons";
+import { Callout, ErrorNote, Note } from "./ui";
 
 /**
  * The joiner's entire flow. Every control here has to earn its tap — five of
  * the six people using this didn't start the session and have near-zero
- * patience for a form.
+ * patience for a form. Four questions, one screen, no scrolling on a phone
+ * until the diet chips.
  */
 export function ConstraintForm({
   mode,
@@ -87,7 +89,7 @@ export function ConstraintForm({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-5">
+    <form onSubmit={submit} className="space-y-7">
       <div>
         <label className="label" htmlFor="name">
           Your name
@@ -107,25 +109,35 @@ export function ConstraintForm({
       <div>
         <span className="label">Where are you?</span>
         {coords ? (
-          <div className="flex items-center justify-between gap-3 rounded-xl px-4 py-3" style={{ background: "var(--surface-2)" }}>
-            <span className="truncate text-sm" style={{ color: "var(--ok)" }}>
+          <div
+            className="flex items-center gap-3 px-4"
+            style={{
+              minHeight: 52,
+              background: "var(--brand-tint)",
+              borderRadius: "var(--r)",
+              border: "1px solid transparent",
+            }}
+          >
+            <Check size={19} className="shrink-0" style={{ color: "var(--brand)" }} />
+            <span className="min-w-0 flex-1 truncate text-[14px]" style={{ color: "var(--text)" }}>
               {placeLabel}
             </span>
             <button
               type="button"
-              className="shrink-0 text-sm underline"
-              style={{ color: "var(--muted)" }}
+              className="shrink-0 text-[14px] font-semibold"
+              style={{ color: "var(--brand)" }}
               onClick={() => {
                 setCoords(null);
                 setPlaceLabel(null);
               }}
             >
-              change
+              Change
             </button>
           </div>
         ) : (
           <div className="space-y-3">
-            <button type="button" className="btn btn-ghost" onClick={useMyLocation} disabled={locating}>
+            <button type="button" className="btn btn-secondary" onClick={useMyLocation} disabled={locating}>
+              <Pin size={19} style={{ color: "var(--brand)" }} />
               {locating ? "Finding you…" : "Use my location"}
             </button>
 
@@ -135,20 +147,28 @@ export function ConstraintForm({
                   className="field"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Enter here should look up the address, not submit a form
+                    // that has no location yet.
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void useAddress();
+                    }
+                  }}
                   placeholder="Street, city"
                   autoComplete="street-address"
                 />
-                <button type="button" className="btn btn-ghost !w-auto px-4" onClick={useAddress} disabled={locating}>
+                <button
+                  type="button"
+                  className="btn btn-secondary !w-auto px-5"
+                  onClick={useAddress}
+                  disabled={locating || !address.trim()}
+                >
                   Find
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                className="text-sm underline"
-                style={{ color: "var(--muted)" }}
-                onClick={() => setShowAddress(true)}
-              >
+              <button type="button" className="btn btn-quiet" onClick={() => setShowAddress(true)}>
                 or type an address
               </button>
             )}
@@ -159,70 +179,94 @@ export function ConstraintForm({
       <div>
         <span className="label">Anything you can&apos;t eat?</span>
         <div className="flex flex-wrap gap-2">
-          {DIET_CHIPS.map((chip) => (
-            <button
-              key={chip.key}
-              type="button"
-              aria-pressed={diets.includes(chip.key)}
-              className={`chip ${diets.includes(chip.key) ? "chip-on" : ""}`}
-              onClick={() => toggleDiet(chip.key)}
-            >
-              {chip.label}
-            </button>
-          ))}
+          {DIET_CHIPS.map((chip) => {
+            const on = diets.includes(chip.key);
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                aria-pressed={on}
+                className={`chip ${on ? "chip-on" : ""}`}
+                onClick={() => toggleDiet(chip.key)}
+              >
+                {on ? <Check size={16} className="-ml-0.5 mr-1.5" /> : null}
+                {chip.label}
+              </button>
+            );
+          })}
         </div>
 
         {advisorySelected.length > 0 ? (
-          <div className="mt-3">
-            <Note tone="warn">
-              Heads up — the map data behind Hangry has no allergen information at all, so we can&apos;t filter on{" "}
-              {advisorySelected.map((c) => c.label.toLowerCase()).join(" or ")}. Everyone will see a reminder to check
-              with the restaurant. We won&apos;t tell you somewhere is safe.
-            </Note>
+          <div className="mt-4">
+            <Callout title="We can't check that one">
+              The map data behind Hangry has no allergen information at all, so{" "}
+              {advisorySelected.map((c) => c.label.toLowerCase()).join(" and ")} can&apos;t be filtered on. Everyone
+              will see a reminder to check with the restaurant. We won&apos;t tell you somewhere is safe.
+            </Callout>
           </div>
         ) : null}
       </div>
 
-      <div>
-        <label className="label" htmlFor="distance">
-          How far will you go?
-        </label>
-        <select id="distance" className="field" value={maxDistance} onChange={(e) => setMaxDistance(Number(e.target.value))}>
-          {DISTANCE_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <label className="flex items-center gap-3 text-sm">
-        <input type="checkbox" className="h-5 w-5 accent-amber-400" checked={openNow} onChange={(e) => setOpenNow(e.target.checked)} />
-        Only somewhere open right now
-      </label>
-
-      {mode === "create" ? (
+      <div className={mode === "create" ? "grid grid-cols-2 gap-3" : ""}>
         <div>
-          <label className="label" htmlFor="radius">
-            How far should we search?
+          <label className="label" htmlFor="distance">
+            You&apos;ll travel
           </label>
-          <select id="radius" className="field" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
-            {RADIUS_OPTIONS.map((option) => (
+          <select
+            id="distance"
+            className="field"
+            value={maxDistance}
+            onChange={(e) => setMaxDistance(Number(e.target.value))}
+          >
+            {DISTANCE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
           </select>
         </div>
-      ) : null}
 
-      <ErrorNote>{localError ?? error}</ErrorNote>
+        {mode === "create" ? (
+          <div>
+            <label className="label" htmlFor="radius">
+              Search area
+            </label>
+            <select id="radius" className="field" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+              {RADIUS_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+      </div>
 
-      <button className="btn btn-primary" disabled={busy || !name.trim() || !coords}>
-        {busy ? "One sec…" : mode === "create" ? "Get the link" : "I'm in"}
-      </button>
+      <label
+        className="flex cursor-pointer items-center gap-3 px-4 text-[15px]"
+        style={{ minHeight: 52, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r)" }}
+      >
+        <input
+          type="checkbox"
+          className="h-[20px] w-[20px] shrink-0 rounded"
+          style={{ accentColor: "var(--brand)" }}
+          checked={openNow}
+          onChange={(e) => setOpenNow(e.target.checked)}
+        />
+        Only somewhere open right now
+      </label>
 
-      {!coords ? <Note>We need a rough location to find places near everyone. It isn&apos;t stored after the session expires.</Note> : null}
+      <div className="space-y-3">
+        <ErrorNote>{localError ?? error}</ErrorNote>
+
+        <button className="btn btn-primary" disabled={busy || !name.trim() || !coords}>
+          {busy ? "One sec…" : mode === "create" ? "Get the link" : "I'm in"}
+        </button>
+
+        {!coords ? (
+          <Note>We need a rough location to find places near everyone. It&apos;s gone when the session expires.</Note>
+        ) : null}
+      </div>
     </form>
   );
 }

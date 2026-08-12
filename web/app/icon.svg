@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Hangry</title>
+  <rect width="32" height="32" rx="7.5" fill="url(#hangryBrand)"/>
+  <!-- Fork, offset left to leave room for the decision badge. -->
+  <g fill="#fff">
+    <rect x="10.55" y="6.6" width="1.35" height="5.3" rx="0.67"/>
+    <rect x="13.45" y="6.6" width="1.35" height="5.3" rx="0.67"/>
+    <rect x="16.35" y="6.6" width="1.35" height="5.3" rx="0.67"/>
+    <path d="M10.55 11.5h7.15v1.2a3.575 3.575 0 0 1-7.15 0v-1.2Z"/>
+    <rect x="13.03" y="15.4" width="2.2" height="9.9" rx="1.1"/>
+  </g>
+  <!-- The decision: a fork alone is a food app, a fork plus a tick is this one. -->
+  <circle cx="23.1" cy="22.2" r="5.9" fill="#fff"/>
+  <path d="m20.5 22.3 1.85 1.95 3.75-4.2" stroke="url(#hangryBrand)" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <defs>
+    <linearGradient id="hangryBrand" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12B76A"/>
+      <stop offset="1" stop-color="#067647"/>
+    </linearGradient>
+  </defs>
+</svg>
