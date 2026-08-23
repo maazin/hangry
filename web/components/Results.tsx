@@ -4,16 +4,16 @@ import { useState } from "react";
 
 import { metres } from "@/lib/constraints";
 import type { SessionState } from "@/lib/types";
-import { Logo } from "./Logo";
-import { Alert, ArrowRight, Check } from "./icons";
-import { Callout, Note } from "./ui";
+import { Masthead } from "./Logo";
+import { Alert, ArrowRight } from "./icons";
+import { Caution, Note } from "./ui";
 
-/**
- * A flat ranked list recreates the paralysis this product exists to end, so
- * #1 gets a card of its own and everything below it carries what it costs
- * and whom. Three by default; the tail is available but out of the way.
+/*
+ * A flat ranked list brings back the paralysis this product exists to end, so
+ * the winner gets a panel of its own and everything under it carries what it
+ * costs and whom. Three by default, with the tail available and out of the way.
  */
-export function Results({ slug, state }: { slug: string; state: SessionState }) {
+export function Results({ state }: { state: SessionState }) {
   const [showCuts, setShowCuts] = useState(false);
   const [showRest, setShowRest] = useState(false);
 
@@ -33,115 +33,102 @@ export function Results({ slug, state }: { slug: string; state: SessionState }) 
 
   return (
     <main>
-      <Logo tagline="Settled." />
+      <Masthead context="Settled." />
 
-      <section
-        className="mb-4 overflow-hidden"
-        style={{ borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-md)", border: "1px solid var(--border)" }}
-      >
-        <div className="px-5 pb-5 pt-5" style={{ background: "var(--brand-tint)" }}>
-          <p className="mb-2 flex items-center gap-1.5 text-[12px] font-bold uppercase" style={{ color: "var(--brand)", letterSpacing: "0.07em" }}>
-            <Check size={15} />
-            Go here
-          </p>
-          <h2 className="text-[30px] font-bold leading-[1.1]">{winner.name}</h2>
-          <p className="mt-1.5 text-[14px]" style={{ color: "var(--text-2)" }}>
-            {[winner.cuisine.slice(0, 3).join(", "), metres(winner.distance_m)].filter(Boolean).join(" · ")}
-          </p>
-        </div>
+      <section className="surface mb-4 p-6" style={{ borderColor: "var(--brand)" }}>
+        <p className="eyebrow" style={{ color: "var(--brand)" }}>
+          Go here
+        </p>
+        <h1 className="font-serif text-title-1 leading-[1.06]">{winner.name}</h1>
+        <p className="mt-2 text-subhead" style={{ color: "var(--ink-3)" }}>
+          {[winner.cuisine.slice(0, 3).join(", "), metres(winner.distance_m)].filter(Boolean).join(", ")}
+        </p>
 
-        <div className="px-5 py-5" style={{ background: "var(--surface)" }}>
-          <p className="text-[16px] leading-relaxed">{winner.annotation}</p>
+        <div className="rule my-5" />
 
-          {/* The winner can be a place the data couldn't verify. Saying so on
-              the headline card is the difference between a tool an allergic
-              person trusts and one they abandon. */}
-          {winnerUnverified ? (
-            <div className="mt-4">
-              <Callout title="Not verified — call ahead">
-                <ul className="space-y-1">
-                  {winnerCandidate?.cut_reasons.map((reason, index) => (
-                    <li key={index}>{reason.detail}</li>
-                  ))}
-                </ul>
-              </Callout>
-            </div>
-          ) : null}
+        <p className="leading-relaxed">{winner.annotation}</p>
 
-          <a
-            className="btn btn-primary mt-5"
-            href={mapsUrl(winner.lat ?? 0, winner.lon ?? 0, winner.name)}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open in maps
-            <ArrowRight size={18} />
-          </a>
-        </div>
+        {/* The winner can be a place the data could not verify. Saying so on
+            the headline panel is what separates a tool an allergic person
+            trusts from one they abandon. */}
+        {winnerUnverified ? (
+          <div className="mt-5">
+            <Caution title="Not verified, call ahead">
+              <ul className="space-y-1">
+                {winnerCandidate?.cut_reasons.map((reason, index) => (
+                  <li key={index}>{reason.detail}</li>
+                ))}
+              </ul>
+            </Caution>
+          </div>
+        ) : null}
+
+        <a
+          className="btn btn-primary mt-6"
+          href={mapsUrl(winner.lat ?? 0, winner.lon ?? 0, winner.name)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open in maps
+          <ArrowRight size={18} />
+        </a>
       </section>
 
       {runnersUp.length > 0 ? (
         <section className="mb-4 space-y-2">
-          {runnersUp.map((option, index) => (
-            <article key={option.candidate_id} className="card p-4">
-              <div className="flex items-baseline gap-2.5">
-                <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>
+          {[...runnersUp, ...(showRest ? tail : [])].map((option, index) => (
+            <article key={option.candidate_id} className="surface p-4">
+              <div className="flex items-baseline gap-3">
+                <span className="font-serif text-title-3 tabular-nums" style={{ color: "var(--ink-3)" }}>
                   {index + 2}
                 </span>
-                <h3 className="text-[16px] font-semibold">{option.name}</h3>
+                <h2 className="font-medium">{option.name}</h2>
               </div>
-              <p className="mt-1 pl-[22px] text-[14px] leading-relaxed" style={{ color: "var(--text-2)" }}>
+              <p className="mt-1 pl-8 text-subhead leading-relaxed" style={{ color: "var(--ink-2)" }}>
                 {option.annotation}
               </p>
             </article>
           ))}
 
-          {tail.length > 0 ? (
-            showRest ? (
-              tail.map((option, index) => (
-                <article key={option.candidate_id} className="card p-4">
-                  <div className="flex items-baseline gap-2.5">
-                    <span className="text-[13px] font-bold tabular-nums" style={{ color: "var(--text-3)" }}>
-                      {index + 4}
-                    </span>
-                    <h3 className="text-[16px] font-semibold">{option.name}</h3>
-                  </div>
-                  <p className="mt-1 pl-[22px] text-[14px] leading-relaxed" style={{ color: "var(--text-2)" }}>
-                    {option.annotation}
-                  </p>
-                </article>
-              ))
-            ) : (
-              <button className="btn btn-quiet" onClick={() => setShowRest(true)}>
-                Show the other {tail.length}
-              </button>
-            )
+          {tail.length > 0 && !showRest ? (
+            <button className="btn btn-quiet" onClick={() => setShowRest(true)}>
+              Show the other {tail.length}
+            </button>
           ) : null}
         </section>
       ) : null}
 
       {/* Showing the group what the popular answer would have cost is the
-          fairness argument and the shareable bit at once. */}
+          fairness argument and the shareable moment at once. */}
       {comparison ? (
-        <section className="card mb-4 p-5">
-          <p className="text-[17px] font-semibold leading-snug">{comparison.headline}</p>
+        <section className="surface mb-4 p-5">
+          <p className="font-serif text-title-3 leading-snug">{comparison.headline}</p>
 
-          <dl className="mt-4">
+          <dl className="mt-5">
             <Rule
               label="Straight majority vote"
               value={comparison.utilitarian?.name}
               note={
                 comparison.utilitarian?.excludes?.length
-                  ? `leaves out ${comparison.utilitarian.excludes.join(", ")}`
-                  : "nobody left out"
+                  ? `Leaves out ${comparison.utilitarian.excludes.join(", ")}`
+                  : "Nobody left out"
               }
               tone={comparison.utilitarian?.excludes?.length ? "danger" : "muted"}
             />
-            <Rule label="Safest for everyone" value={comparison.maximin?.name} note="nobody's last choice, nobody's first either" />
-            <Rule label="Hangry's answer" value={comparison.minimax_regret?.name} note="the least anyone gives up" tone="brand" />
+            <Rule
+              label="Safest for everyone"
+              value={comparison.maximin?.name}
+              note="Nobody's last choice, nobody's first either"
+            />
+            <Rule
+              label="Hangry's answer"
+              value={comparison.minimax_regret?.name}
+              note="The least anyone gives up"
+              tone="brand"
+            />
           </dl>
 
-          <div className="mt-4">
+          <div className="mt-5">
             <Note>
               Hangry minimises the worst individual regret rather than maximising the average, which is why the answer
               can differ from what most people wanted.
@@ -153,33 +140,39 @@ export function Results({ slug, state }: { slug: string; state: SessionState }) 
       {state.advisories.length > 0 ? (
         <div className="mb-4 space-y-3">
           {state.advisories.map((advisory, index) => (
-            <Callout key={index}>{advisory.detail}</Callout>
+            <Caution key={index}>{advisory.detail}</Caution>
           ))}
         </div>
       ) : null}
 
       {eliminated.length + unverified.length > 0 ? (
-        <section className="mb-6">
+        <section className="mb-8">
           <button className="btn btn-secondary" onClick={() => setShowCuts((v) => !v)} aria-expanded={showCuts}>
-            {showCuts ? "Hide" : `Why ${eliminated.length + unverified.length} places didn't make it`}
+            {showCuts ? "Hide" : `Why ${eliminated.length + unverified.length} places did not make it`}
           </button>
 
           {showCuts ? (
             <ul className="mt-3 space-y-2">
               {[...unverified, ...eliminated].map((candidate) => (
-                <li key={candidate.id} className="card p-4">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <p className="text-[15px] font-semibold">{candidate.name}</p>
-                    <span className={`badge shrink-0 ${candidate.tier === "unverified" ? "badge-warn" : ""}`}
-                      style={candidate.tier === "unverified" ? undefined : { background: "var(--surface-2)", color: "var(--text-3)" }}>
-                      {candidate.tier === "unverified" ? "unverified" : "ruled out"}
+                <li key={candidate.id} className="surface p-4">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <p className="font-medium">{candidate.name}</p>
+                    <span
+                      className={`tag shrink-0 ${candidate.tier === "unverified" ? "tag-caution" : ""}`}
+                      style={
+                        candidate.tier === "unverified"
+                          ? undefined
+                          : { background: "var(--surface-2)", color: "var(--ink-3)" }
+                      }
+                    >
+                      {candidate.tier === "unverified" ? "Unverified" : "Ruled out"}
                     </span>
                   </div>
                   {candidate.cut_reasons.map((reason, index) => (
                     <p
                       key={index}
-                      className="mt-1 text-[13px]"
-                      style={{ color: reason.kind === "unknown" ? "var(--warn)" : "var(--text-3)" }}
+                      className="mt-1 text-footnote"
+                      style={{ color: reason.kind === "unknown" ? "var(--caution)" : "var(--ink-3)" }}
                     >
                       {reason.detail}
                     </p>
@@ -191,18 +184,18 @@ export function Results({ slug, state }: { slug: string; state: SessionState }) 
         </section>
       ) : null}
 
-      <footer className="space-y-4">
-        <div className="divider" />
+      <footer className="space-y-5">
+        <div className="rule" />
         <Note>
           Ranked by {result.alternates?.voters?.length ?? state.participants.length} of {state.participants.length}.
           {result.alternates?.non_voters?.length
-            ? ` ${result.alternates.non_voters.join(", ")} didn't rank, so nothing was assumed on their behalf.`
+            ? ` ${result.alternates.non_voters.join(", ")} did not rank, so nothing was assumed on their behalf.`
             : ""}
         </Note>
-        <div className="flex items-start gap-2.5">
-          <Alert size={17} className="mt-0.5 shrink-0" style={{ color: "var(--text-3)" }} />
+        <div className="flex items-start gap-3">
+          <Alert size={17} className="mt-0.5 shrink-0" style={{ color: "var(--ink-3)" }} />
           <Note>
-            Hangry never says a place is safe — only that nothing in the listed data conflicts. Check with the
+            Hangry never calls a place safe. It reports only that nothing in the listed data conflicts. Ask the
             restaurant if it matters.
           </Note>
         </div>
@@ -232,16 +225,19 @@ function Rule({
   tone?: "muted" | "danger" | "brand";
 }) {
   if (!value) return null;
-  const colour = { muted: "var(--text-3)", danger: "var(--danger)", brand: "var(--brand)" }[tone];
+  const colour = { muted: "var(--ink-3)", danger: "var(--danger)", brand: "var(--brand)" }[tone];
   return (
-    <div className="flex items-start justify-between gap-4 border-t py-3" style={{ borderColor: "var(--border)" }}>
-      <dt className="shrink-0 pt-0.5 text-[13px]" style={{ color: "var(--text-3)" }}>
+    <div
+      className="flex items-start justify-between gap-4 py-3"
+      style={{ borderTop: "1px solid var(--hairline)" }}
+    >
+      <dt className="shrink-0 pt-0.5 text-footnote" style={{ color: "var(--ink-3)" }}>
         {label}
       </dt>
       <dd className="min-w-0 text-right">
-        <span className="block text-[15px] font-semibold">{value}</span>
+        <span className="block font-medium">{value}</span>
         {note ? (
-          <span className="mt-0.5 block text-[13px]" style={{ color: colour }}>
+          <span className="mt-0.5 block text-footnote" style={{ color: colour }}>
             {note}
           </span>
         ) : null}

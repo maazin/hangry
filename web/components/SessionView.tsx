@@ -6,10 +6,10 @@ import { api, readToken, writeToken, type JoinPayload } from "@/lib/api";
 import { ApiError, type SessionState } from "@/lib/types";
 import { ConstraintForm } from "./ConstraintForm";
 import { Lobby } from "./Lobby";
-import { Logo } from "./Logo";
+import { Masthead } from "./Logo";
 import { RankingList } from "./RankingList";
 import { Results } from "./Results";
-import { ErrorNote, Note, Progress, Skeleton, Stopped } from "./ui";
+import { ErrorNote, Note, Progress, Stopped, Waiting } from "./ui";
 
 const POLL_MS = 3000;
 
@@ -40,10 +40,10 @@ export function SessionView({ slug }: { slug: string }) {
     void refresh();
   }, [refresh, token]);
 
-  /**
-   * Polling, replaced by WebSockets in a later phase. Watching other people
-   * land is what creates the urgency to finish, and polling gets most of
-   * that for none of the infrastructure.
+  /*
+   * Polling, which a later phase replaces with WebSockets. Watching other
+   * people land is what creates the urgency to finish, and polling gets most
+   * of that for none of the infrastructure.
    */
   useEffect(() => {
     if (fatal || state?.status === "decided") return;
@@ -61,7 +61,7 @@ export function SessionView({ slug }: { slug: string }) {
       setToken(joined.token);
       await refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't join. Try again.");
+      setError(e instanceof ApiError ? e.message : "Could not join. Try again.");
     } finally {
       setBusy(false);
     }
@@ -82,7 +82,7 @@ export function SessionView({ slug }: { slug: string }) {
           .join(" and ");
         setError(who ? `Nothing nearby works for ${who}. Try a wider search.` : e.message);
       } else {
-        setError(e instanceof ApiError ? e.message : "Couldn't start. Try again.");
+        setError(e instanceof ApiError ? e.message : "Could not start. Try again.");
       }
     } finally {
       setBusy(false);
@@ -97,7 +97,7 @@ export function SessionView({ slug }: { slug: string }) {
       await api.submitRanking(slug, token, orderedIds);
       await refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't send your ranking. Try again.");
+      setError(e instanceof ApiError ? e.message : "Could not send your ranking. Try again.");
     } finally {
       setBusy(false);
     }
@@ -110,27 +110,25 @@ export function SessionView({ slug }: { slug: string }) {
       await api.solve(slug, token);
       await refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't get a result yet.");
+      setError(e instanceof ApiError ? e.message : "Could not get a result yet.");
     } finally {
       setBusy(false);
     }
   }
 
-  // ---- terminal states -----------------------------------------------
-
   if (fatal?.status === 410) {
     return (
       <main>
-        <Logo />
+        <Masthead />
         <Stopped
-          title="This one's expired"
+          title="This one has expired"
           action={
             <a className="btn btn-primary" href="/">
-              Start a new session
+              Start a new one
             </a>
           }
         >
-          Sessions last 24 hours and then delete themselves. Nothing to recover — start a fresh one.
+          Rounds last 24 hours and then delete themselves. Nothing to recover.
         </Stopped>
       </main>
     );
@@ -139,16 +137,16 @@ export function SessionView({ slug }: { slug: string }) {
   if (fatal?.status === 404) {
     return (
       <main>
-        <Logo />
+        <Masthead />
         <Stopped
-          title="No session here"
+          title="Nothing here"
           action={
             <a className="btn btn-secondary" href="/">
               Start your own
             </a>
           }
         >
-          That link doesn&apos;t match anything. Check you copied all of it.
+          That link does not match anything. Check you copied all of it.
         </Stopped>
       </main>
     );
@@ -157,41 +155,39 @@ export function SessionView({ slug }: { slug: string }) {
   if (!state) {
     return (
       <main>
-        <Logo />
-        <Skeleton rows={3} />
+        <Masthead />
+        <Waiting label="Loading the round" />
       </main>
     );
   }
 
-  // ---- the flow ------------------------------------------------------
-
-  // The server resolves identity from the token; the client never guesses.
+  // The server resolves identity from the token, so the client never guesses.
   const me = state.you;
   const joined = Boolean(me);
   const isCreator = Boolean(me?.is_creator);
 
   if (state.status === "decided" && state.result) {
-    return <Results slug={slug} state={state} />;
+    return <Results state={state} />;
   }
 
   if (!joined) {
     if (state.status !== "collecting") {
-      // A round belongs to a group, so the fix is almost always "open the
-      // group link on this device", not "start over".
+      // A round belongs to a group, so the fix is almost always to open the
+      // group link on this device.
       if (state.group_slug) {
         return (
           <main>
-            <Logo />
+            <Masthead />
             <Stopped
-              title="You're not in this round"
+              title="You are not in this round"
               action={
                 <a className="btn btn-primary" href={`/g/${state.group_slug}`}>
                   Open the group
                 </a>
               }
             >
-              This round is already going. If you&apos;re in the group, open the group link on this device and
-              you&apos;ll be able to rank — if you&apos;re not, that&apos;s where you join.
+              This round is already going. If you are in the group, open the group link on this device and you will be
+              able to rank. If you are new, that is where you join.
             </Stopped>
           </main>
         );
@@ -199,9 +195,9 @@ export function SessionView({ slug }: { slug: string }) {
 
       return (
         <main>
-          <Logo />
+          <Masthead />
           <Stopped
-            title="They've already started"
+            title="They have already started"
             action={
               <a className="btn btn-secondary" href="/">
                 Start one
@@ -209,7 +205,7 @@ export function SessionView({ slug }: { slug: string }) {
             }
           >
             This group locked in their options before you opened the link. Joining now would change what everyone else
-            already ranked, so you&apos;ll need a new session.
+            already ranked, so you will need a new session.
           </Stopped>
         </main>
       );
@@ -217,11 +213,11 @@ export function SessionView({ slug }: { slug: string }) {
 
     return (
       <main>
-        <Logo
-          tagline={
+        <Masthead
+          context={
             state.participants.length === 1
-              ? "One person's waiting on you. Takes about 30 seconds."
-              : `${state.participants.length} already in. Takes about 30 seconds.`
+              ? "One person is waiting on you. About thirty seconds."
+              : `${state.participants.length} already in. About thirty seconds.`
           }
         />
         <ConstraintForm mode="join" busy={busy} error={error} onSubmit={(payload) => join(payload)} />
@@ -230,64 +226,47 @@ export function SessionView({ slug }: { slug: string }) {
   }
 
   if (state.status === "collecting") {
-    return (
-      <Lobby
-        slug={slug}
-        state={state}
-        busy={busy}
-        error={error}
-        canStart={isCreator}
-        onStart={start}
-      />
-    );
+    return <Lobby slug={slug} state={state} busy={busy} error={error} canStart={isCreator} onStart={start} />;
   }
 
   const rankable = state.candidates.filter((c) => c.locked);
 
-  // Comes from the server, so a reload doesn't ask for a ranking twice.
+  // Comes from the server, so a reload does not ask for a ranking twice.
   if (me?.has_ranked) {
     const waiting = state.participants.length - state.submitted;
     return (
       <main>
-        <Logo tagline="Sent. Waiting on the rest." />
-        <div className="card p-5">
-          <p className="text-[22px] font-bold tabular-nums">
+        <Masthead context="Sent. Waiting on the rest." />
+        <section className="surface p-5">
+          <p className="font-serif text-title-2 tabular-nums">
             {state.submitted} of {state.participants.length} have ranked
           </p>
-          <div className="mt-4">
-            <Progress value={state.submitted} max={state.participants.length} />
+          <div className="mt-5">
+            <Progress value={state.submitted} max={state.participants.length} label="Rankings submitted" />
           </div>
-          <div className="mt-4">
+          <div className="mt-5">
             <Note>
               {waiting > 0
                 ? "The result appears here the moment the last person finishes."
-                : "Working out the fairest option…"}
+                : "Working out the fairest option."}
             </Note>
           </div>
 
           {isCreator && state.submitted > 0 && waiting > 0 ? (
-            <button className="btn btn-secondary mt-5" onClick={forceSolve} disabled={busy}>
+            <button className="btn btn-secondary mt-6" onClick={forceSolve} disabled={busy}>
               Decide without the stragglers
             </button>
           ) : null}
 
           {error ? (
-            <div className="mt-4">
+            <div className="mt-5">
               <ErrorNote>{error}</ErrorNote>
             </div>
           ) : null}
-        </div>
+        </section>
       </main>
     );
   }
 
-  return (
-    <RankingList
-      state={state}
-      candidates={rankable}
-      busy={busy}
-      error={error}
-      onSubmit={submitRanking}
-    />
-  );
+  return <RankingList state={state} candidates={rankable} busy={busy} error={error} onSubmit={submitRanking} />;
 }

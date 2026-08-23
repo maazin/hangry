@@ -1,4 +1,4 @@
-"""Phase 2 — place cache, tile cache, per-session candidates
+"""Phase 2, place cache, tile cache, per-session candidates
 
 Revision ID: 0002
 Revises: 0001

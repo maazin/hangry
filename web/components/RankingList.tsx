@@ -23,9 +23,9 @@ import { useState } from "react";
 
 import { metres } from "@/lib/constraints";
 import type { Candidate, SessionState } from "@/lib/types";
-import { Logo } from "./Logo";
-import { ChevronDown, ChevronUp, Grip } from "./icons";
-import { Callout, ErrorNote, Note } from "./ui";
+import { Masthead } from "./Logo";
+import { ChevronDown, ChevronUp, DragHandle } from "./icons";
+import { Caution, ErrorNote, Note } from "./ui";
 
 function Row({
   candidate,
@@ -37,53 +37,48 @@ function Row({
   candidate: Candidate;
   index: number;
   total: number;
-  /** Only when the list is mixed — see the call site. */
+  /** Only when the list is mixed. See the call site. */
   showTier: boolean;
   onMove: (from: number, to: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: candidate.id });
-
-  const meta = [candidate.cuisine.slice(0, 2).join(", "), metres(candidate.distance_m)].filter(Boolean).join(" · ");
+  const meta = [candidate.cuisine.slice(0, 2).join(", "), metres(candidate.distance_m)].filter(Boolean).join(", ");
 
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`row touch-none py-3 ${isDragging ? "dragging" : ""}`}
+      className={`surface flex touch-none items-center gap-3 py-2 pl-4 pr-1 ${isDragging ? "is-dragging" : ""}`}
     >
       <span
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] font-bold tabular-nums"
-        style={
-          index === 0
-            ? { background: "var(--brand)", color: "var(--on-brand)" }
-            : { background: "var(--surface-2)", color: "var(--text-2)" }
-        }
+        className="w-6 shrink-0 text-center font-serif text-title-3 tabular-nums"
+        style={{ color: index === 0 ? "var(--brand)" : "var(--ink-3)" }}
       >
         {index + 1}
       </span>
 
-      <div className="min-w-0 flex-1">
-        {/* The badge sits outside the truncating span on purpose — a long
-            restaurant name must never be able to clip the safety label. */}
+      <div className="min-w-0 flex-1 py-1">
+        {/* The tag sits outside the truncating span so a long restaurant name
+            can never clip the safety label. */}
         <div className="flex items-center gap-2">
-          <span className="truncate text-[15px] font-semibold">{candidate.name}</span>
-          {showTier ? <span className="badge badge-warn shrink-0">unverified</span> : null}
+          <span className="truncate font-medium">{candidate.name}</span>
+          {showTier ? <span className="tag tag-caution shrink-0">Unverified</span> : null}
         </div>
         {meta ? (
-          <p className="truncate text-[13px]" style={{ color: "var(--text-3)" }}>
+          <p className="truncate text-footnote" style={{ color: "var(--ink-3)" }}>
             {meta}
           </p>
         ) : null}
       </div>
 
-      {/* Arrows aren't a fallback — dragging is genuinely hard one-handed on a
-          phone and impossible with a screen reader. */}
+      {/* Arrows give a second way through. Dragging is hard with one
+          thumb and impossible with a screen reader. Both clear 44pt. */}
       <div className="flex shrink-0 flex-col">
         <button
           type="button"
           aria-label={`Move ${candidate.name} up`}
-          className="flex h-7 w-8 items-center justify-center rounded-sm disabled:opacity-20"
-          style={{ color: "var(--text-2)" }}
+          className="flex items-center justify-center rounded-s disabled:opacity-25"
+          style={{ minWidth: "var(--tap)", minHeight: "1.375rem", color: "var(--ink-2)" }}
           disabled={index === 0}
           onClick={() => onMove(index, index - 1)}
         >
@@ -92,8 +87,8 @@ function Row({
         <button
           type="button"
           aria-label={`Move ${candidate.name} down`}
-          className="flex h-7 w-8 items-center justify-center rounded-sm disabled:opacity-20"
-          style={{ color: "var(--text-2)" }}
+          className="flex items-center justify-center rounded-s disabled:opacity-25"
+          style={{ minWidth: "var(--tap)", minHeight: "1.375rem", color: "var(--ink-2)" }}
           disabled={index === total - 1}
           onClick={() => onMove(index, index + 1)}
         >
@@ -103,13 +98,13 @@ function Row({
 
       <button
         type="button"
-        className="-mr-1 shrink-0 cursor-grab touch-none px-1 active:cursor-grabbing"
-        style={{ color: "var(--text-3)" }}
+        className="flex shrink-0 cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+        style={{ minWidth: "var(--tap)", minHeight: "var(--tap)", color: "var(--ink-3)" }}
         aria-label={`Reorder ${candidate.name}`}
         {...attributes}
         {...listeners}
       >
-        <Grip size={20} />
+        <DragHandle size={20} />
       </button>
     </li>
   );
@@ -153,30 +148,29 @@ export function RankingList({
 
   const unverified = state.candidates.filter((c) => c.tier === "unverified" && !c.locked);
   const eliminated = state.candidates.filter((c) => c.tier === "eliminated");
-  const flaggedInVote = order.some((c) => c.tier === "unverified");
-  // When everything in the vote is unverified — the usual case on real OSM
-  // data — a badge on every row says nothing the banner hasn't, and eats the
-  // restaurant name, which is the one thing people need to read to rank.
-  // It earns its place only when the list is actually mixed.
-  const mixedTiers = flaggedInVote && order.some((c) => c.tier === "feasible");
+  const flagged = order.some((c) => c.tier === "unverified");
+  // When everything in the vote is unverified, which is the usual case on real
+  // map data, a tag on every row repeats the banner and eats the restaurant
+  // name. It earns its place only when the list is mixed.
+  const mixedTiers = flagged && order.some((c) => c.tier === "feasible");
 
   return (
     <main>
-      <Logo tagline="Drag your favourite to the top. That's the whole job." />
+      <Masthead context="Drag your favourite to the top." />
 
-      {flaggedInVote ? (
-        <div className="mb-5">
-          <Callout title="Read this before you rank">
-            The map data couldn&apos;t confirm everyone&apos;s dietary requirements at these places, so they&apos;re
-            marked <strong>unverified</strong> rather than left out. None of them is confirmed safe — whoever has the
-            restriction should call ahead.
-          </Callout>
+      {flagged ? (
+        <div className="mb-6">
+          <Caution title="Read this before you rank">
+            The map data could not confirm everyone&apos;s dietary requirements at these places, so they are marked
+            unverified rather than left out. None of them is confirmed safe. Whoever has the restriction should call
+            ahead.
+          </Caution>
         </div>
       ) : (
-        <div className="mb-5">
+        <div className="mb-6">
           <Note>
-            These all work for everyone&apos;s requirements. You&apos;re ranking, not rating — so nobody can shout
-            louder by scoring everything 1.
+            These all work for everyone&apos;s requirements. You are ranking rather than rating, so nobody can shout
+            louder by scoring everything one.
           </Note>
         </div>
       )}
@@ -188,7 +182,7 @@ export function RankingList({
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
         <SortableContext items={order.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-          <ul className="mb-6 space-y-2">
+          <ul className="mb-7 space-y-2">
             {order.map((candidate, index) => (
               <Row
                 key={candidate.id}
@@ -203,10 +197,10 @@ export function RankingList({
         </SortableContext>
       </DndContext>
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         <ErrorNote>{error}</ErrorNote>
         <button className="btn btn-primary" onClick={() => onSubmit(order.map((c) => c.id))} disabled={busy}>
-          {busy ? "Sending…" : "Lock it in"}
+          {busy ? "Sending" : "Lock it in"}
         </button>
         <Note>
           {state.submitted} of {state.participants.length} have ranked so far.
@@ -214,19 +208,19 @@ export function RankingList({
       </div>
 
       {unverified.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="label">Couldn&apos;t verify</h2>
+        <section className="mt-12">
+          <h2 className="eyebrow">Could not verify</h2>
           <div className="mb-3">
-            <Note>The data doesn&apos;t say either way for these, so they&apos;re out of the vote rather than assumed fine.</Note>
+            <Note>The data says nothing either way for these, so they are out of the vote rather than assumed fine.</Note>
           </div>
           <ul className="space-y-2">
             {unverified.map((candidate) => (
-              <li key={candidate.id} className="panel-warn p-4">
-                <p className="text-[15px] font-semibold" style={{ color: "var(--warn)" }}>
+              <li key={candidate.id} className="panel-caution p-4">
+                <p className="font-medium" style={{ color: "var(--caution)" }}>
                   {candidate.name}
                 </p>
                 {candidate.cut_reasons.map((reason, index) => (
-                  <p key={index} className="mt-1 text-[13px]" style={{ color: "var(--warn)" }}>
+                  <p key={index} className="mt-1 text-footnote" style={{ color: "var(--caution)" }}>
                     {reason.detail}
                   </p>
                 ))}
@@ -237,18 +231,22 @@ export function RankingList({
       ) : null}
 
       {eliminated.length > 0 ? (
-        <section className="mt-10">
-          <h2 className="label">{eliminated.length} ruled out</h2>
-          <ul className="card divide-y overflow-hidden" style={{ borderColor: "var(--border)" }}>
-            {eliminated.slice(0, 8).map((candidate) => {
+        <section className="mt-12">
+          <h2 className="eyebrow">{eliminated.length} ruled out</h2>
+          <ul className="surface overflow-hidden">
+            {eliminated.slice(0, 8).map((candidate, index) => {
               const cut = candidate.cut_reasons.find((r) => r.kind === "eliminated");
               return (
-                <li key={candidate.id} className="px-4 py-3" style={{ borderColor: "var(--border)" }}>
-                  <p className="text-[14px] font-medium" style={{ color: "var(--text-2)" }}>
+                <li
+                  key={candidate.id}
+                  className="px-4 py-3"
+                  style={index > 0 ? { borderTop: "1px solid var(--hairline)" } : undefined}
+                >
+                  <p className="text-subhead font-medium" style={{ color: "var(--ink-2)" }}>
                     {candidate.name}
                   </p>
-                  <p className="text-[13px]" style={{ color: "var(--text-3)" }}>
-                    {cut?.detail ?? "ruled out"}
+                  <p className="text-footnote" style={{ color: "var(--ink-3)" }}>
+                    {cut?.detail ?? "Ruled out"}
                   </p>
                 </li>
               );

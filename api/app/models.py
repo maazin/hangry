@@ -43,7 +43,7 @@ class Place(Base):
     # OSM carries no price data. Left null in v1 rather than faked; the price
     # filter is hidden in the UI for the same reason.
     price_tier: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
-    # {"vegetarian": "yes", "gluten_free": null} — null means *absent from
+    # {"vegetarian": "yes", "gluten_free": null}, null means *absent from
     # OSM*, which is not the same as "no". Nothing may collapse the two.
     diet_flags: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     hours: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -68,7 +68,7 @@ class Group(Base):
     The thing sessions are not: durable. A session evaporates in 24 hours,
     which means every meal starts by re-collecting six people's names,
     locations and dietary needs. A group remembers them, so the second meal
-    costs almost no taps — which is the only metric in the PRD that matters.
+    costs almost no taps, which is the only metric in the PRD that matters.
 
     Still no accounts. The group *is* its link, and membership is the same
     opaque token model used for participants.
@@ -150,7 +150,7 @@ class Participant(Base):
     session_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False
     )
-    # Opaque, client-stored. Not real auth — it stops accidental cross-writes
+    # Opaque, client-stored. Not real auth, it stops accidental cross-writes
     # and nothing more, which is the right level for an ephemeral session
     # holding no personal data.
     token: Mapped[str] = mapped_column(Text, nullable=False)
@@ -160,7 +160,7 @@ class Participant(Base):
     hard_constraints: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     is_creator: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Set when this participant came from a group member. The snapshot above
-    # is deliberately a copy, not a join — a past decision must stay readable
+    # is deliberately a copy, not a join, a past decision must stay readable
     # as it was made, even after someone edits their diet.
     member_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("members.id", ondelete="SET NULL"), nullable=True

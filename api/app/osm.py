@@ -55,7 +55,7 @@ class ParsedPlace:
 def parse_element(element: dict) -> ParsedPlace | None:
     """Map one Overpass element onto a Place row.
 
-    Returns None for anything unusable — unnamed venues and ways without a
+    Returns None for anything unusable, unnamed venues and ways without a
     resolved centre. A nameless pin is not something you can put in a group
     chat and ask six people to vote on.
     """
@@ -122,7 +122,7 @@ def build_query(south: float, west: float, north: float, east: float) -> str:
 async def fetch_tile(client: httpx.AsyncClient, geohash5: str) -> list[ParsedPlace]:
     """Fetch every eatery in one geohash tile."""
     south, west, north, east = geohash_bounds(geohash5)
-    # Form-encoded `data=`, not a raw body — Overpass rejects the latter.
+    # Form-encoded `data=`, not a raw body, Overpass rejects the latter.
     response = await client.post(
         settings.overpass_url,
         data={"data": build_query(south, west, north, east)},

@@ -7,9 +7,9 @@ import { adoptTokenForRound, api, readToken, rememberGroup, writeToken, type Joi
 import { DIET_CHIPS, RADIUS_OPTIONS } from "@/lib/constraints";
 import { ApiError, type GroupState } from "@/lib/types";
 import { ConstraintForm } from "./ConstraintForm";
-import { Logo } from "./Logo";
-import { ArrowRight, Check, Share, Users } from "./icons";
-import { Callout, ErrorNote, Note, Skeleton, Stopped } from "./ui";
+import { Masthead } from "./Logo";
+import { ArrowRight, People, Share } from "./icons";
+import { Caution, ErrorNote, Note, Stopped, Waiting } from "./ui";
 
 const POLL_MS = 4000;
 
@@ -23,12 +23,11 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase();
 
-/**
- * The group page: a roster, an invite link, and a button that starts dinner.
+/*
+ * The group page. A roster, an invite link, and a button that starts dinner.
  *
- * This is where the product stops being a one-shot demo. Members and their
- * dietary constraints live here between meals, so round two costs two taps
- * instead of six people re-typing everything.
+ * Everything the group knows about its members lives here between meals,
+ * which is what makes the fifth dinner cost two taps.
  */
 export function GroupView({ slug }: { slug: string }) {
   const router = useRouter();
@@ -63,7 +62,7 @@ export function GroupView({ slug }: { slug: string }) {
     void refresh();
   }, [refresh]);
 
-  // Watching people arrive is what makes a group feel live enough to start.
+  // Watching people arrive is what makes a group feel worth starting.
   useEffect(() => {
     if (fatal) return;
     const id = setInterval(() => void refresh(), POLL_MS);
@@ -79,7 +78,7 @@ export function GroupView({ slug }: { slug: string }) {
       tokenRef.current = joined.token;
       await refresh();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't join. Try again.");
+      setError(e instanceof ApiError ? e.message : "Could not join. Try again.");
     } finally {
       setBusy(false);
     }
@@ -91,12 +90,12 @@ export function GroupView({ slug }: { slug: string }) {
       try {
         await navigator.share({
           title: state?.name ?? "Hangry",
-          text: "Join the group — we use this to pick where to eat:",
+          text: "Join the group. We use this to pick where to eat.",
           url: link,
         });
         return;
       } catch {
-        /* dismissed — fall through to copy */
+        /* dismissed, fall through to copy */
       }
     }
     await navigator.clipboard.writeText(link);
@@ -111,18 +110,16 @@ export function GroupView({ slug }: { slug: string }) {
     setBusy(true);
     setError(null);
     try {
-      const everyone = state.members.length === coming.length || !picking;
+      const everyone = !picking || state.members.length === coming.length;
       const round = await api.startRound(slug, token, everyone ? null : coming, radius);
       writeToken(round.slug, token);
       router.push(`/s/${round.slug}`);
     } catch (e) {
       if (e instanceof ApiError && e.code === "round_in_progress") {
         await refresh();
-        setError("A round is already going — jump into it below.");
-      } else if (e instanceof ApiError && e.code === "no_feasible_candidates") {
-        setError(e.message);
+        setError("A round is already going. Jump into it above.");
       } else {
-        setError(e instanceof ApiError ? e.message : "Couldn't start a round. Try again.");
+        setError(e instanceof ApiError ? e.message : "Could not start a round. Try again.");
       }
     } finally {
       setBusy(false);
@@ -132,7 +129,7 @@ export function GroupView({ slug }: { slug: string }) {
   if (fatal?.status === 404) {
     return (
       <main>
-        <Logo />
+        <Masthead />
         <Stopped
           title="No group here"
           action={
@@ -141,7 +138,7 @@ export function GroupView({ slug }: { slug: string }) {
             </a>
           }
         >
-          That link doesn&apos;t match any group. Check you copied all of it.
+          That link does not match any group. Check you copied all of it.
         </Stopped>
       </main>
     );
@@ -150,30 +147,27 @@ export function GroupView({ slug }: { slug: string }) {
   if (!state) {
     return (
       <main>
-        <Logo />
-        <Skeleton rows={3} />
+        <Masthead />
+        <Waiting label="Loading the group" />
       </main>
     );
   }
-
-  // ---- not a member yet ------------------------------------------------
 
   if (!state.you) {
     return (
       <main>
-        <Logo tagline={`${state.name} · ${state.members.length} ${state.members.length === 1 ? "person" : "people"} so far`} />
-        <div className="mb-6">
+        <Masthead
+          context={`${state.name}. ${state.members.length} ${state.members.length === 1 ? "person" : "people"} so far.`}
+        />
+        <div className="mb-8">
           <Note>
-            Tell them what you can&apos;t eat once, and you won&apos;t be asked again — every meal this group picks
-            will already know.
+            Say what you cannot eat once. Every meal this group picks from now on will already know.
           </Note>
         </div>
-        <ConstraintForm mode="join" busy={busy} error={error} onSubmit={(payload) => join(payload)} />
+        <ConstraintForm mode="join" busy={busy} error={error} submitLabel="Join the group" onSubmit={(p) => join(p)} />
       </main>
     );
   }
-
-  // ---- a member ---------------------------------------------------------
 
   const active = state.active_round;
   const past = state.rounds.filter((r) => r.slug !== active?.slug && r.status === "decided");
@@ -181,59 +175,57 @@ export function GroupView({ slug }: { slug: string }) {
 
   return (
     <main>
-      <Logo tagline={state.name} />
+      <Masthead context={state.name} />
 
       {active ? (
-        <section className="card mb-4 p-5" style={{ borderColor: "var(--brand)" }}>
-          <p className="badge badge-brand mb-2">Round in progress</p>
-          <p className="text-[17px] font-semibold">
+        <section className="surface mb-4 p-5" style={{ borderColor: "var(--brand)" }}>
+          <p className="tag tag-brand mb-3">Round in progress</p>
+          <p className="text-title-3 font-semibold">
             {active.submitted} of {active.participants} have ranked
           </p>
-          <a className="btn btn-primary mt-4" href={`/s/${active.slug}`}>
+          <a className="btn btn-primary mt-5" href={`/s/${active.slug}`}>
             {active.submitted > 0 ? "Go to the round" : "Rank yours"}
             <ArrowRight size={18} />
           </a>
         </section>
       ) : (
-        <section className="card mb-4 p-5">
-          <p className="text-[17px] font-semibold">Hungry?</p>
-          <div className="mt-1">
+        <section className="surface mb-4 p-5">
+          <h2 className="font-serif text-title-2">Hungry?</h2>
+          <div className="mt-2">
             <Note>
-              Everyone&apos;s requirements are already saved. Starting a round goes straight to ranking — nobody has to
-              fill anything in.
+              Everyone&apos;s requirements are already saved. Starting a round goes straight to ranking, with nothing
+              for anyone to fill in.
             </Note>
           </div>
 
           {picking ? (
-            <div className="mt-4">
-              <span className="label">Who&apos;s eating?</span>
+            <div className="mt-6">
+              <span className="eyebrow">Who is eating?</span>
               <div className="flex flex-wrap gap-2">
-                {state.members.map((member) => {
-                  const on = coming.includes(member.id);
-                  return (
-                    <button
-                      key={member.id}
-                      type="button"
-                      aria-pressed={on}
-                      className={`chip ${on ? "chip-on" : ""}`}
-                      onClick={() =>
-                        setComing((c) => (on ? c.filter((id) => id !== member.id) : [...c, member.id]))
-                      }
-                    >
-                      {on ? <Check size={16} className="-ml-0.5 mr-1.5" /> : null}
-                      {member.display_name}
-                    </button>
-                  );
-                })}
+                {state.members.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    aria-pressed={coming.includes(member.id)}
+                    className="chip"
+                    onClick={() =>
+                      setComing((c) =>
+                        c.includes(member.id) ? c.filter((id) => id !== member.id) : [...c, member.id],
+                      )
+                    }
+                  >
+                    {member.display_name}
+                  </button>
+                ))}
               </div>
               <div className="mt-3">
                 <Note>
-                  Anyone left out won&apos;t have their dietary needs applied — which is right if they aren&apos;t
-                  coming, and wrong if they are.
+                  Anyone left out will not have their dietary needs applied, which is right if they are staying home
+                  and wrong if they are coming.
                 </Note>
               </div>
 
-              <label className="label mt-4" htmlFor="radius">
+              <label className="eyebrow mt-6" htmlFor="radius">
                 Search area
               </label>
               <select id="radius" className="field" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
@@ -247,22 +239,25 @@ export function GroupView({ slug }: { slug: string }) {
           ) : null}
 
           <button
-            className="btn btn-primary mt-4"
+            className="btn btn-primary mt-5"
             onClick={startRound}
             disabled={busy || (picking && selected.length === 0)}
           >
-            {busy ? "Finding places…" : picking ? `Start with ${selected.length}` : "Start a round"}
+            {busy ? "Finding places" : picking ? `Start with ${selected.length}` : "Start a round"}
           </button>
 
-          {!picking ? (
-            <button className="btn btn-quiet mt-1" onClick={() => { setPicking(true); setComing(state.members.map((m) => m.id)); }}>
-              Not everyone&apos;s coming
-            </button>
-          ) : (
-            <button className="btn btn-quiet mt-1" onClick={() => setPicking(false)}>
-              Never mind, everyone&apos;s in
-            </button>
-          )}
+          <button
+            className="btn btn-quiet mt-1"
+            onClick={() => {
+              if (picking) setPicking(false);
+              else {
+                setPicking(true);
+                setComing(state.members.map((m) => m.id));
+              }
+            }}
+          >
+            {picking ? "Everyone is coming after all" : "Not everyone is coming"}
+          </button>
 
           {error ? (
             <div className="mt-4">
@@ -272,11 +267,11 @@ export function GroupView({ slug }: { slug: string }) {
         </section>
       )}
 
-      <section className="card mb-4 overflow-hidden">
+      <section className="surface mb-4 overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3.5">
-          <span className="label !mb-0">The group</span>
-          <span className="flex items-center gap-1.5 text-[14px] font-semibold" style={{ color: "var(--text-2)" }}>
-            <Users size={17} />
+          <span className="eyebrow !mb-0">The group</span>
+          <span className="flex items-center gap-1.5 text-subhead font-medium" style={{ color: "var(--ink-2)" }}>
+            <People size={17} />
             {state.members.length}
           </span>
         </div>
@@ -286,27 +281,31 @@ export function GroupView({ slug }: { slug: string }) {
             const diets = member.hard_constraints?.diets ?? [];
             const isMe = member.id === state.you?.member_id;
             return (
-              <li key={member.id} className="flex items-center gap-3 border-t px-4 py-3" style={{ borderColor: "var(--border)" }}>
+              <li
+                key={member.id}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ borderTop: "1px solid var(--hairline)" }}
+              >
                 <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold"
-                  style={{ background: "var(--brand-tint)", color: "var(--brand)" }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-s text-footnote font-semibold"
+                  style={{ background: "var(--brand-wash)", color: "var(--brand)" }}
                 >
                   {initials(member.display_name)}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[15px] font-semibold">
+                  <span className="block truncate font-medium">
                     {member.display_name}
                     {isMe ? (
-                      <span className="ml-2 text-[12px] font-medium" style={{ color: "var(--text-3)" }}>
+                      <span className="ml-2 text-footnote font-normal" style={{ color: "var(--ink-3)" }}>
                         you
                       </span>
                     ) : null}
                   </span>
                   <span
-                    className="block truncate text-[13px]"
-                    style={{ color: diets.length ? "var(--warn)" : "var(--text-3)" }}
+                    className="block truncate text-footnote"
+                    style={{ color: diets.length ? "var(--caution)" : "var(--ink-3)" }}
                   >
-                    {diets.length ? diets.map(dietLabel).join(" · ") : "No restrictions"}
+                    {diets.length ? diets.map(dietLabel).join(", ") : "No restrictions"}
                   </span>
                 </span>
               </li>
@@ -314,13 +313,13 @@ export function GroupView({ slug }: { slug: string }) {
           })}
         </ul>
 
-        <div className="border-t p-4" style={{ borderColor: "var(--border)" }}>
+        <div className="p-4" style={{ borderTop: "1px solid var(--hairline)" }}>
           <button className="btn btn-secondary" onClick={share}>
-            {copied ? <Check size={19} /> : <Share size={19} />}
+            <Share size={18} />
             {copied ? "Link copied" : "Invite someone"}
           </button>
           <div className="mt-3">
-            <Note>Anyone with the link can join — you don&apos;t have to be the one who started it.</Note>
+            <Note>Anyone with the link can join. You do not have to be the person who started it.</Note>
           </div>
         </div>
       </section>
@@ -328,34 +327,34 @@ export function GroupView({ slug }: { slug: string }) {
       {state.advisories.length > 0 ? (
         <div className="mb-4 space-y-3">
           {state.advisories.map((advisory, index) => (
-            <Callout key={index} title="Worth knowing">
+            <Caution key={index} title="Worth knowing">
               {advisory.detail}
-            </Callout>
+            </Caution>
           ))}
         </div>
       ) : null}
 
       {past.length > 0 ? (
         <section className="mb-6">
-          <h2 className="label">Where you&apos;ve been</h2>
-          <ul className="card divide-y overflow-hidden">
-            {past.map((round) => (
-              <li key={round.slug} style={{ borderColor: "var(--border)" }}>
-                <a className="flex items-center gap-3 px-4 py-3" href={`/s/${round.slug}`}>
+          <h2 className="eyebrow">Where you have been</h2>
+          <ul className="surface overflow-hidden">
+            {past.map((round, index) => (
+              <li key={round.slug} style={index > 0 ? { borderTop: "1px solid var(--hairline)" } : undefined}>
+                <a className="flex items-center gap-3 px-4 py-3.5" href={`/s/${round.slug}`}>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-semibold">{round.winner ?? "Decided"}</span>
-                    <span className="block text-[13px]" style={{ color: "var(--text-3)" }}>
-                      {new Date(round.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })} ·{" "}
+                    <span className="block truncate font-medium">{round.winner ?? "Decided"}</span>
+                    <span className="block text-footnote" style={{ color: "var(--ink-3)" }}>
+                      {new Date(round.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })},{" "}
                       {round.participants} eating
                     </span>
                   </span>
-                  <ArrowRight size={17} style={{ color: "var(--text-3)" }} />
+                  <ArrowRight size={17} style={{ color: "var(--ink-3)" }} />
                 </a>
               </li>
             ))}
           </ul>
-          <div className="mt-2">
-            <Note>Past rounds stay readable for 24 hours, then the round expires. The group doesn&apos;t.</Note>
+          <div className="mt-3">
+            <Note>A round stays readable for 24 hours, then expires. The group stays.</Note>
           </div>
         </section>
       ) : null}

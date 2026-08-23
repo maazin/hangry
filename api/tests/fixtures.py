@@ -16,7 +16,7 @@ from app.models import Participant, Place, TileCache
 CENTER_LAT, CENTER_LON = 40.7128, -74.0060
 
 # (name, dlat, dlon, gluten_free, vegetarian, halal)
-# None means the tag is absent from OSM — which is not "no".
+# None means the tag is absent from OSM, which is not "no".
 RESTAURANTS = [
     ("Ramen House", 0.001, 0.001, "no", "yes", "yes"),
     ("Taqueria Sol", 0.002, -0.001, "yes", "yes", "no"),
@@ -37,7 +37,7 @@ CUISINES = {
     "Sushi Bar": ["sushi", "japanese"],
 }
 
-# (name, diets) — matches the hard-constraint table in the doc.
+# (name, diets), matches the hard-constraint table in the doc.
 PEOPLE = [
     ("Maazin", []),
     ("Ana", []),
@@ -47,7 +47,7 @@ PEOPLE = [
     ("Dev", ["halal"]),
 ]
 
-# Jordan does not eat sushi. Not an allergy — he just hates it, so it is a
+# Jordan does not eat sushi. Not an allergy, he just hates it, so it is a
 # soft preference expressed in the ranking and eliminates nothing.
 RANKINGS = {
     "Maazin": ["Sushi Bar", "Indian Kitchen", "Mediterranean Grill"],
@@ -89,7 +89,7 @@ def make_places() -> list[Place]:
 async def seed_world(db, only: list[str] | None = None) -> None:
     """Put the restaurants in the cache and mark the tiles warm.
 
-    Warm tiles are what keep the API tests off the network — Overpass is
+    Warm tiles are what keep the API tests off the network, Overpass is
     never on the request path, so the tests shouldn't be either. `only`
     narrows the world by name, for scenarios that need a specific shape.
     """

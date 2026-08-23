@@ -102,7 +102,7 @@ def haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
 def centroid(points: list[tuple[float, float]]) -> tuple[float, float]:
     """Mean of lat/lon pairs.
 
-    Naive, and frequently wrong — the midpoint of six addresses is often a
+    Naive, and frequently wrong, the midpoint of six addresses is often a
     highway interchange. Good enough as a search origin in v1; Phase 6
     replaces it with intersected isochrones.
     """

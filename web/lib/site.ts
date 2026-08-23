@@ -3,7 +3,7 @@
  *
  * Open Graph URLs must be absolute. Without a `metadataBase` Next resolves
  * them against localhost, so every link pasted into a group chat unfurls
- * pointing at a machine nobody else can reach — which breaks the only
+ * pointing at a machine nobody else can reach, breaking the only
  * distribution channel this product has.
  *
  * Order matters: an explicit value wins, then Vercel's stable production

@@ -1,4 +1,4 @@
-# Rename `app` to whatever `fly launch` allocates you — it must be globally
+# Rename `app` to whatever `fly launch` allocates you, it must be globally
 # unique, so this value is a placeholder rather than a default.
 app = "hangry-api"
 primary_region = "ewr"
@@ -7,7 +7,7 @@ primary_region = "ewr"
   dockerfile = "Dockerfile"
 
 # Migrations run before the new version takes traffic. If this fails, the
-# deploy aborts and the old machine keeps serving — which is the behaviour
+# deploy aborts and the old machine keeps serving, which is the behaviour
 # you want at 10pm on a Sunday.
 [deploy]
   release_command = "alembic upgrade head"

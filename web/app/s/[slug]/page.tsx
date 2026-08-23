@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const title = "Where are we eating?";
   const description = "Tap in what you can't eat, rank a few places, and Hangry settles it. No signup, about 30 seconds.";
 
-  // See the note in app/g/[slug]/page.tsx — a child `openGraph` replaces the
+  // See the note in app/g/[slug]/page.tsx. A child `openGraph` replaces the
   // parent's, so the generated image has to be named again or the link
   // unfurls without it.
   const images = ["/opengraph-image"];

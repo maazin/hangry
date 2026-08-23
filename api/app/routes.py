@@ -146,8 +146,8 @@ async def _build_state(db: DbSession, session: Session, viewer_token: str | None
 async def create_session(body: SessionCreate, db: DbSession) -> SessionCreated:
     """Create a session and enrol the creator in one round trip.
 
-    One call, because the creator's first tap should produce a shareable link
-    — not an empty session they then have to join.
+    One call, because the creator's first tap should produce a shareable
+    link rather than an empty session they then have to join.
     """
     session = None
     for _ in range(8):  # 30^6 keyspace; collisions are rare but not impossible
@@ -193,7 +193,7 @@ async def read_session(
     db: DbSession,
     x_participant_token: Annotated[str | None, Header()] = None,
 ) -> SessionState:
-    """Full state. The token is optional here — someone who hasn't joined yet
+    """Full state. The token is optional here, someone who hasn't joined yet
     still needs to see who's waiting before deciding to."""
     return await _build_state(db, session, x_participant_token)
 
@@ -247,7 +247,7 @@ async def start_session(session: CurrentSession, db: DbSession, creator: Creator
 async def run_start(db: DbSession, session: Session) -> StartResult:
     """The solve setup, callable outside the request that owns the session.
 
-    A group round starts itself the moment it is created — everyone's
+    A group round starts itself the moment it is created, everyone's
     constraints are already known, so making someone tap "start" again would
     be asking a question the group already answered.
     """
@@ -258,7 +258,7 @@ async def run_start(db: DbSession, session: Session) -> StartResult:
     if not participants:
         raise HTTPException(422, detail={"code": "no_participants", "message": "Nobody has joined yet."})
 
-    # Geographic centroid is the naive origin and is frequently wrong — the
+    # Geographic centroid is the naive origin and is frequently wrong, the
     # midpoint of six addresses is often a highway interchange. It is the
     # stated v1 proxy; Phase 6 replaces it with intersected isochrones.
     center_lat, center_lon = centroid([(p.lat, p.lon) for p in participants])
@@ -289,7 +289,7 @@ async def run_start(db: DbSession, session: Session) -> StartResult:
     #
     # A relaxation is adopted only if it actually produces more options. When
     # the shortage is missing tags rather than distance, widening the radius
-    # changes nothing — and telling the group "we doubled the distance limit"
+    # changes nothing, and telling the group "we doubled the distance limit"
     # when their distance was never the binding factor is simply false.
     for multiplier, label in (
         (1.5, "widened the distance limit by 50%"),
@@ -347,7 +347,7 @@ async def run_start(db: DbSession, session: Session) -> StartResult:
     chosen_ids = {v.place.osm_id for v in chosen}
 
     # Every place gets a row: the locked set to be ranked, the rest to explain
-    # a cut. `locked` is what separates the two — tier can't, since an
+    # a cut. `locked` is what separates the two, tier can't, since an
     # unverified place is sometimes in the vote and a feasible one beyond the
     # locked 6-8 never is.
     leftovers = [v for v in unverified + eliminated if v.place.osm_id not in chosen_ids][: settings.candidate_target * 3]
@@ -377,7 +377,7 @@ async def run_start(db: DbSession, session: Session) -> StartResult:
                 "constraint": "unverified_data",
                 "detail": (
                     "The map data couldn't confirm everyone's dietary requirements at these places, so they're in "
-                    "the vote flagged rather than left out. Nothing here is confirmed safe — check with the "
+                    "the vote flagged rather than left out. Nothing here is confirmed safe, check with the "
                     "restaurant before you commit."
                 ),
             }

@@ -4,34 +4,37 @@ export function Note({
   tone = "muted",
   children,
 }: {
-  tone?: "muted" | "warn" | "danger" | "brand";
+  tone?: "muted" | "caution" | "danger" | "brand";
   children: React.ReactNode;
 }) {
   const colour = {
-    muted: "var(--text-2)",
-    warn: "var(--warn)",
+    muted: "var(--ink-2)",
+    caution: "var(--caution)",
     danger: "var(--danger)",
     brand: "var(--brand)",
   }[tone];
   return (
-    <p className="text-[14px] leading-relaxed" style={{ color: colour }}>
+    <p className="text-subhead leading-relaxed" style={{ color: colour }}>
       {children}
     </p>
   );
 }
 
 /**
- * The warning surface. Amber in both themes, never green — this is the only
- * component on screen whose job is to stop someone from eating the wrong
- * thing, so it must never read as part of the brand.
+ * The warning surface. Amber in both themes, never pine.
+ *
+ * This is the only component whose job is to stop someone eating the wrong
+ * thing, so it always carries an icon and a heading alongside the colour. In
+ * dark mode the sage and the amber sit at almost the same luminance, which
+ * means hue alone would separate them for nobody.
  */
-export function Callout({ title, children }: { title?: string; children: React.ReactNode }) {
+export function Caution({ title, children }: { title?: string; children: React.ReactNode }) {
   return (
-    <div className="panel-warn flex gap-3 p-4" style={{ color: "var(--warn)" }}>
+    <div className="panel-caution flex gap-3 p-4" style={{ color: "var(--caution)" }}>
       <Alert size={19} className="mt-0.5 shrink-0" />
       <div className="min-w-0">
-        {title ? <p className="mb-1 text-[14px] font-semibold">{title}</p> : null}
-        <div className="text-[14px] leading-relaxed">{children}</div>
+        {title ? <p className="mb-1 text-subhead font-semibold">{title}</p> : null}
+        <div className="text-subhead leading-relaxed">{children}</div>
       </div>
     </div>
   );
@@ -42,11 +45,10 @@ export function ErrorNote({ children }: { children: React.ReactNode }) {
   return (
     <div
       role="alert"
-      className="flex gap-3 p-4 text-[14px] leading-relaxed"
+      className="flex gap-3 rounded-m p-4 text-subhead leading-relaxed"
       style={{
-        background: "var(--danger-tint)",
-        border: "1px solid var(--danger-border)",
-        borderRadius: "var(--r)",
+        background: "var(--danger-wash)",
+        border: "1px solid var(--danger-line)",
         color: "var(--danger)",
       }}
     >
@@ -56,58 +58,46 @@ export function ErrorNote({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function Spinner({ label }: { label?: string }) {
+/**
+ * Waiting state. A line of text and a thin rule, which says the same thing as
+ * a shimmering placeholder without pretending content has arrived.
+ */
+export function Waiting({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 py-10" role="status">
-      <span
-        className="h-[18px] w-[18px] animate-spin rounded-full border-2"
-        style={{ borderColor: "var(--border-strong)", borderTopColor: "var(--brand)" }}
-      />
-      {label ? (
-        <span className="text-[14px]" style={{ color: "var(--text-2)" }}>
-          {label}
-        </span>
-      ) : null}
+    <div role="status" className="py-10">
+      <p className="text-subhead" style={{ color: "var(--ink-2)" }}>
+        {label}
+      </p>
+      <div className="mt-3 h-px w-full overflow-hidden" style={{ background: "var(--hairline)" }}>
+        <div className="h-px w-1/3 animate-pulse" style={{ background: "var(--brand)" }} />
+      </div>
     </div>
   );
 }
 
-/** Skeleton rows, so a slow solve reads as working rather than broken. */
-export function Skeleton({ rows = 3 }: { rows?: number }) {
-  return (
-    <div className="space-y-3" aria-hidden>
-      <div className="h-9 w-2/5 animate-pulse rounded" style={{ background: "var(--surface-2)" }} />
-      {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="animate-pulse"
-          style={{ height: 68, borderRadius: "var(--r)", background: "var(--surface-2)" }}
-        />
-      ))}
-    </div>
-  );
-}
-
-export function Progress({ value, max }: { value: number; max: number }) {
+export function Progress({ value, max, label }: { value: number; max: number; label: string }) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <div
-      className="h-2 w-full overflow-hidden rounded-full"
-      style={{ background: "var(--surface-2)" }}
-      role="progressbar"
-      aria-valuenow={value}
-      aria-valuemin={0}
-      aria-valuemax={max}
-    >
+    <div>
       <div
-        className="h-full rounded-full transition-[width] duration-500 ease-out"
-        style={{ width: `${pct}%`, background: "var(--brand)" }}
-      />
+        className="h-1 w-full overflow-hidden rounded-s"
+        style={{ background: "var(--surface-2)" }}
+        role="progressbar"
+        aria-valuenow={value}
+        aria-valuemin={0}
+        aria-valuemax={max}
+        aria-label={label}
+      >
+        <div
+          className="h-full transition-[width] duration-500 ease-out"
+          style={{ width: `${pct}%`, background: "var(--brand)" }}
+        />
+      </div>
     </div>
   );
 }
 
-/** Terminal states — expired, not found, already started. */
+/** Terminal states: expired, missing, already under way. */
 export function Stopped({
   title,
   children,
@@ -118,12 +108,12 @@ export function Stopped({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="card p-6">
-      <h2 className="text-[21px] font-bold">{title}</h2>
-      <div className="mt-2">
+    <section className="surface p-6">
+      <h2 className="font-serif text-title-2">{title}</h2>
+      <div className="mt-3">
         <Note>{children}</Note>
       </div>
-      {action ? <div className="mt-5">{action}</div> : null}
-    </div>
+      {action ? <div className="mt-6">{action}</div> : null}
+    </section>
   );
 }

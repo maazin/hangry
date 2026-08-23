@@ -1,4 +1,4 @@
-"""Phase 2 — OSM tag mapping, the null-vs-no distinction, and tile caching."""
+"""Phase 2, OSM tag mapping, the null-vs-no distinction, and tile caching."""
 
 from datetime import UTC, datetime, timedelta
 
@@ -56,7 +56,7 @@ def test_cuisine_is_semicolon_delimited(raw, expected):
 
 
 # --------------------------------------------------------------------------
-# null vs no — the invariant
+# null vs no, the invariant
 # --------------------------------------------------------------------------
 
 
@@ -244,7 +244,7 @@ async def test_a_failing_tile_degrades_instead_of_failing_the_solve(db, monkeypa
     monkeypatch.setattr(osm, "fetch_tile", boom)
     await osm.ensure_tiles_cached(db, 40.7128, -74.0060, 2000)
 
-    # Nothing cached, nothing raised — and the tile stays unmarked so the next
+    # Nothing cached, nothing raised, and the tile stays unmarked so the next
     # solve retries it rather than trusting an empty result for 30 days.
     assert (await db.execute(select(TileCache))).scalars().all() == []
 

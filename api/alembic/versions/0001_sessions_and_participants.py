@@ -1,4 +1,4 @@
-"""Phase 1 — sessions and participants
+"""Phase 1, sessions and participants
 
 Revision ID: 0001
 Revises:

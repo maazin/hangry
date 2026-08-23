@@ -1,4 +1,4 @@
-"""Groups and members — the durable layer under one-off sessions
+"""Groups and members, the durable layer under one-off sessions
 
 A session evaporates in 24 hours, so every meal re-collected six people's
 names, locations and dietary needs. A group remembers them and a session

@@ -1,4 +1,4 @@
-"""Phase 4 — mark which candidates are actually in the vote
+"""Phase 4, mark which candidates are actually in the vote
 
 Tier alone could not express this: a feasible place beyond the locked 6-8 is
 not ranked, and on sparse OSM data an unverified place sometimes is.

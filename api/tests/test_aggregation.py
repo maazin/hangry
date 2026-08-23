@@ -198,7 +198,7 @@ def test_tiebreak_is_deterministic_without_distances():
 
 
 # --------------------------------------------------------------------------
-# Degenerate cases — where off-by-one bugs live
+# Degenerate cases, where off-by-one bugs live
 # --------------------------------------------------------------------------
 
 
@@ -249,7 +249,7 @@ def test_regret_is_measured_against_what_was_achievable():
     """The property that makes the output feel fair rather than arbitrary.
 
     Jordan's real favourite being unavailable does not entitle him to
-    compensation — regret is scored against the feasible set, so removing his
+    compensation, regret is scored against the feasible set, so removing his
     unavailable favourite from the matrix changes nothing about the winner.
     """
     scores = borda_scores(canonical.DOC_RANKINGS)

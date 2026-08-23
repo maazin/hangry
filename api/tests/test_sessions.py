@@ -1,4 +1,4 @@
-"""Phase 1 — sessions, joining, and the participant token."""
+"""Phase 1, sessions, joining, and the participant token."""
 
 import uuid
 from datetime import UTC, datetime, timedelta

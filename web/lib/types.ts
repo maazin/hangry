@@ -19,7 +19,7 @@ export interface Candidate {
   lon: number;
   cuisine: string[];
   tier: Tier;
-  /** In the vote. Not implied by tier — sparse data puts unverified places in. */
+  /** In the vote. Tier does not imply it; sparse data puts unverified places in. */
   locked: boolean;
   distance_m: number;
   cut_reasons: CutReason[];

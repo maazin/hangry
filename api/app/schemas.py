@@ -19,7 +19,7 @@ class HardConstraints(BaseModel):
 
     diets: list[str] = Field(default_factory=list)
     max_distance_m: int | None = Field(default=None, ge=100, le=100_000)
-    # Wired up but unused in v1 — OSM has no price data, so the UI hides it
+    # Wired up but unused in v1, OSM has no price data, so the UI hides it
     # rather than filtering against nulls.
     max_price_tier: int | None = Field(default=None, ge=1, le=4)
     open_now: bool = False
@@ -134,7 +134,7 @@ class StartResult(BaseModel):
 
 
 # --------------------------------------------------------------------------
-# groups — the durable layer
+# groups, the durable layer
 # --------------------------------------------------------------------------
 
 
@@ -160,7 +160,7 @@ class MemberOut(BaseModel):
 
 
 class MemberUpdate(BaseModel):
-    """Everything optional — this is used both to move location before a
+    """Everything optional, this is used both to move location before a
     round and to correct a diet, and neither should require resending the
     other."""
 

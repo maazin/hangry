@@ -17,5 +17,5 @@ COPY . .
 ENV PORT=8080
 EXPOSE 8080
 
-# Shell form on purpose — $PORT has to expand at runtime, not build time.
+# Shell form on purpose, $PORT has to expand at runtime, not build time.
 CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}

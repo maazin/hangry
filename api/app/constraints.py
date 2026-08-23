@@ -19,7 +19,7 @@ FILTERABLE_DIETS: dict[str, str] = {
     "kosher": "diet:kosher",
 }
 
-# OSM has no allergen tagging at all — not sparse, absent. Routing these
+# OSM has no allergen tagging at all, not sparse, absent. Routing these
 # through the unverified tier would tip every candidate into it and destroy
 # the signal the tier carries, so they become a standing advisory shown on
 # every candidate and on the result instead. That is still never "safe":

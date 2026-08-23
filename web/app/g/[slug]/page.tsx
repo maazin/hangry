@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   // `images` has to be repeated here. Declaring `openGraph` in a child route
   // replaces the parent's object wholesale, which silently drops the image
-  // Next injects from app/opengraph-image.tsx — so without this the invite
+  // Next injects from app/opengraph-image.tsx. Without this the invite
   // link unfurls as a plain text card.
   const images = ["/opengraph-image"];
 

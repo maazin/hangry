@@ -5,84 +5,106 @@
 /*
  * Hangry design system.
  *
- * Delivery apps (DoorDash, Uber Eats, Grubhub) are loud because they're
- * selling you a hundred restaurants. Hangry sells one decision, so the
- * borrowing is structural rather than visual: full-width primary actions,
- * generous list rows, a single saturated brand colour doing all the work.
- * Everything else is restraint — hairline borders, one type family, real
- * whitespace, and no shadow doing a border's job.
+ * Three ideas from the Human Interface Guidelines carry the whole thing:
  *
- * One rule the palette must never break: the "unverified" state is amber and
- * stays amber in both themes. It is the only thing on screen that can hurt
- * someone, so it never blends into the brand green.
+ *   Hierarchy comes from size, weight and space before it comes from colour.
+ *   Every colour pairing clears 4.5:1, measured rather than judged by eye.
+ *   Colour never carries meaning alone. The unverified state always arrives
+ *   with an icon and the word beside it.
+ *
+ * Warm ivory ground, deep pine, aged brass. Saturation stays low so the one
+ * thing on screen that can hurt someone, the unverified warning, has room to
+ * stand out. No pure white anywhere; the lightest surface is #FDFBF6.
+ *
+ * Corners are cut close at 2 to 6px. Sizes are in rem so browser text
+ * scaling reaches the whole interface.
  */
 
 :root {
   /* surfaces */
-  --bg: #f7f9f7;
-  --surface: #ffffff;
-  --surface-2: #f1f4f2;
-  --border: #e4e9e5;
-  --border-strong: #d2dad5;
+  --canvas: #f4f1ea;
+  --surface: #fdfbf6;
+  --surface-2: #eae5da;
+  --hairline: #dbd4c6;
+  --hairline-strong: #c5bdab;
 
-  /* text */
-  --text: #0e1512;
-  --text-2: #59665f;
-  --text-3: #8b948e;
-  --on-brand: #ffffff;
+  /* ink */
+  --ink: #1b1a16;
+  --ink-2: #565044;
+  --ink-3: #6b6455;
+  --on-brand: #fdfbf6;
 
   /* brand */
-  --brand: #099250;
-  --brand-strong: #067647;
-  --brand-tint: #e8f6ee;
+  --brand: #24503f;
+  --brand-deep: #173428;
+  --brand-wash: #e7ebe5;
 
-  /* states */
-  --warn: #b54708;
-  --warn-tint: #fffaeb;
-  --warn-border: #fedf89;
-  --danger: #b42318;
-  --danger-tint: #fef3f2;
-  --danger-border: #fecdca;
+  /* signals */
+  --caution: #8c4a24;
+  --caution-wash: #f6efe5;
+  --caution-line: #d9c1a4;
+  --danger: #8e2f26;
+  --danger-wash: #f7ebe8;
+  --danger-line: #dfbab3;
+  --brass: #7a5f35;
 
-  --ring: rgb(9 146 80 / 0.28);
-  --shadow-sm: 0 1px 2px rgb(16 24 20 / 0.05);
-  --shadow-md: 0 4px 16px -4px rgb(16 24 20 / 0.10);
-  --shadow-lg: 0 12px 32px -8px rgb(16 24 20 / 0.16);
+  --focus: #24503f;
 
-  --r-sm: 10px;
-  --r: 14px;
-  --r-lg: 20px;
+  /* Shadows stay faint. On a warm ground a heavy shadow reads as grime. */
+  --lift-1: 0 1px 2px rgb(27 26 22 / 0.05);
+  --lift-2: 0 6px 18px -10px rgb(27 26 22 / 0.16);
+  --lift-3: 0 16px 40px -18px rgb(27 26 22 / 0.24);
+
+  /* Corners stay tight. */
+  --radius-s: 2px;
+  --radius-m: 4px;
+  --radius-l: 6px;
+
+  /* Type scale. Body sits at 17px, the HIG default for mobile. */
+  --t-caption: 0.75rem;
+  --t-footnote: 0.8125rem;
+  --t-subhead: 0.9375rem;
+  --t-callout: 1rem;
+  --t-body: 1.0625rem;
+  --t-title-3: 1.25rem;
+  --t-title-2: 1.5rem;
+  --t-title-1: 2rem;
+  --t-display: 2.5rem;
+
+  /* Smallest comfortable target. HIG asks for 44pt. */
+  --tap: 2.75rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0a0f0c;
-    --surface: #111815;
-    --surface-2: #182019;
-    --border: #222d27;
-    --border-strong: #2e3b34;
+    --canvas: #131311;
+    --surface: #1b1b18;
+    --surface-2: #232320;
+    --hairline: #302f2a;
+    --hairline-strong: #413f38;
 
-    --text: #ecf2ee;
-    --text-2: #93a099;
-    --text-3: #6d7a73;
-    --on-brand: #04140b;
+    --ink: #f0ece3;
+    --ink-2: #aba396;
+    --ink-3: #938b7d;
+    --on-brand: #131311;
 
-    --brand: #24c67c;
-    --brand-strong: #4dd694;
-    --brand-tint: rgb(36 198 124 / 0.13);
+    --brand: #7fa890;
+    --brand-deep: #9cbfab;
+    --brand-wash: #1c231f;
 
-    /* Amber holds its meaning in the dark, just lighter. */
-    --warn: #fdb022;
-    --warn-tint: rgb(253 176 34 / 0.10);
-    --warn-border: rgb(253 176 34 / 0.32);
-    --danger: #fda29b;
-    --danger-tint: rgb(240 68 56 / 0.10);
-    --danger-border: rgb(240 68 56 / 0.32);
+    --caution: #cf9c3c;
+    --caution-wash: #221c11;
+    --caution-line: #45381d;
+    --danger: #dd8a80;
+    --danger-wash: #221513;
+    --danger-line: #4a2a25;
+    --brass: #bfa067;
 
-    --ring: rgb(36 198 124 / 0.34);
-    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-    --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.5);
-    --shadow-lg: 0 12px 32px -8px rgb(0 0 0 / 0.6);
+    --focus: #7fa890;
+
+    --lift-1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --lift-2: 0 6px 18px -10px rgb(0 0 0 / 0.6);
+    --lift-3: 0 16px 40px -18px rgb(0 0 0 / 0.7);
   }
 }
 
@@ -92,13 +114,12 @@
   }
 
   body {
-    background: var(--bg);
-    color: var(--text);
+    background: var(--canvas);
+    color: var(--ink);
+    font-size: var(--t-body);
+    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Optical sizing and tight tracking are most of what makes type feel
-       considered rather than default. */
-    letter-spacing: -0.011em;
     max-width: 100vw;
     overflow-x: hidden;
   }
@@ -106,44 +127,44 @@
   h1,
   h2,
   h3 {
-    letter-spacing: -0.028em;
+    line-height: 1.12;
+    letter-spacing: -0.018em;
     text-wrap: balance;
   }
 
-  /* One focus treatment everywhere, keyboard-only. */
+  /* One focus ring across the app, shown for keyboard use only. */
   :focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px var(--ring);
-    border-radius: var(--r-sm);
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-radius: var(--radius-s);
   }
 
   ::selection {
-    background: var(--brand-tint);
-    color: var(--text);
+    background: var(--brand-wash);
+    color: var(--ink);
   }
 }
 
 @layer components {
-  .card {
+  .surface {
     background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-m);
   }
 
+  /* Every variant clears the 44pt target, including the quiet one. */
   .btn {
-    @apply inline-flex w-full items-center justify-center gap-2 px-5 text-[15px] font-semibold;
-    min-height: 52px;
-    border-radius: var(--r);
-    transition: background-color 0.16s ease, border-color 0.16s ease, opacity 0.16s ease, transform 0.1s ease;
-  }
-
-  .btn:active:not(:disabled) {
-    transform: scale(0.988);
+    @apply inline-flex w-full items-center justify-center gap-2 px-5 font-semibold;
+    min-height: var(--tap);
+    padding-block: 0.8125rem;
+    font-size: var(--t-callout);
+    border-radius: var(--radius-m);
+    letter-spacing: -0.006em;
+    transition: background-color 0.18s ease, border-color 0.18s ease, opacity 0.18s ease;
   }
 
   .btn:disabled {
-    opacity: 0.42;
+    opacity: 0.38;
     cursor: not-allowed;
   }
 
@@ -152,120 +173,104 @@
     color: var(--on-brand);
   }
 
-  @media (hover: hover) {
-    .btn-primary:hover:not(:disabled) {
-      background: var(--brand-strong);
-    }
-  }
-
   .btn-secondary {
     background: var(--surface);
-    color: var(--text);
-    border: 1px solid var(--border-strong);
-  }
-
-  @media (hover: hover) {
-    .btn-secondary:hover:not(:disabled) {
-      background: var(--surface-2);
-    }
+    color: var(--ink);
+    border: 1px solid var(--hairline-strong);
   }
 
   .btn-quiet {
     background: transparent;
-    color: var(--text-2);
-    min-height: 44px;
-    @apply text-sm font-medium;
+    color: var(--ink-2);
+    font-weight: 500;
+    font-size: var(--t-subhead);
   }
 
   @media (hover: hover) {
-    .btn-quiet:hover:not(:disabled) {
-      color: var(--text);
-    }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-deep); }
+    .btn-secondary:hover:not(:disabled) { background: var(--surface-2); }
+    .btn-quiet:hover:not(:disabled) { color: var(--ink); }
   }
 
+  /*
+   * Selection is carried by fill and weight rather than by a tick or by hue,
+   * so it survives both colour blindness and a monochrome screen.
+   */
   .chip {
-    @apply inline-flex items-center px-3.5 text-[14px] font-medium;
-    min-height: 40px;
-    border-radius: 999px;
+    @apply inline-flex items-center px-4 font-medium;
+    min-height: var(--tap);
+    font-size: var(--t-subhead);
+    border-radius: var(--radius-m);
     background: var(--surface);
-    border: 1px solid var(--border-strong);
-    color: var(--text-2);
-    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+    border: 1px solid var(--hairline-strong);
+    color: var(--ink-2);
+    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
   }
 
-  .chip-on {
+  .chip[aria-pressed="true"] {
     background: var(--brand);
     border-color: var(--brand);
     color: var(--on-brand);
+    font-weight: 700;
   }
 
   .field {
-    @apply w-full px-4 text-[16px];
-    min-height: 52px;
-    border-radius: var(--r);
+    @apply w-full px-4;
+    min-height: var(--tap);
+    padding-block: 0.75rem;
+    /* 16px floor stops iOS Safari zooming the page on focus. */
+    font-size: max(var(--t-body), 1rem);
+    border-radius: var(--radius-m);
     background: var(--surface);
-    border: 1px solid var(--border-strong);
-    color: var(--text);
-    transition: border-color 0.14s ease;
+    border: 1px solid var(--hairline-strong);
+    color: var(--ink);
+    transition: border-color 0.16s ease;
   }
 
-  .field::placeholder {
-    color: var(--text-3);
+  .field::placeholder { color: var(--ink-3); }
+  .field:focus { border-color: var(--brand); outline-offset: 1px; }
+
+  /* Sentence case. Small caps text is harder to read, and the HIG writing
+     guidance prefers sentence case for interface labels. */
+  .eyebrow {
+    @apply mb-2 block font-semibold;
+    font-size: var(--t-footnote);
+    color: var(--ink-3);
   }
 
-  .field:focus {
-    border-color: var(--brand);
-    outline: none;
-    box-shadow: 0 0 0 3px var(--ring);
+  .tag {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 font-semibold;
+    font-size: var(--t-caption);
+    border-radius: var(--radius-s);
+    white-space: nowrap;
   }
 
-  .label {
-    @apply mb-2 block text-[13px] font-semibold uppercase;
-    letter-spacing: 0.045em;
-    color: var(--text-3);
+  .tag-caution {
+    background: var(--caution-wash);
+    color: var(--caution);
+    border: 1px solid var(--caution-line);
   }
 
-  .badge {
-    @apply inline-flex items-center px-2 py-0.5 text-[10px] font-bold uppercase;
-    letter-spacing: 0.06em;
-    border-radius: 999px;
-  }
-
-  .badge-warn {
-    background: var(--warn-tint);
-    color: var(--warn);
-    border: 1px solid var(--warn-border);
-  }
-
-  .badge-brand {
-    background: var(--brand-tint);
+  .tag-brand {
+    background: var(--brand-wash);
     color: var(--brand);
   }
 
-  /* Inset panel for advisories and anything that needs to stop the eye. */
-  .panel-warn {
-    background: var(--warn-tint);
-    border: 1px solid var(--warn-border);
-    border-radius: var(--r);
+  .panel-caution {
+    background: var(--caution-wash);
+    border: 1px solid var(--caution-line);
+    border-radius: var(--radius-m);
   }
 
-  .row {
-    @apply flex items-center gap-3 px-4;
-    min-height: 68px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--r);
-  }
-
-  .divider {
+  .rule {
     height: 1px;
-    background: var(--border);
+    background: var(--hairline);
   }
 }
 
-/* dnd-kit lifts the dragged row; make it read as picked up. */
-.dragging {
-  box-shadow: var(--shadow-lg);
+/* dnd-kit raises the row being dragged. */
+.is-dragging {
+  box-shadow: var(--lift-3);
   border-color: var(--brand) !important;
   z-index: 10;
 }
@@ -276,5 +281,6 @@
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

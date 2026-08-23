@@ -11,7 +11,12 @@ import os
 # Must be set before anything imports app.config and builds the engine.
 os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://hangry:hangry@localhost:5433/hangry_test")
 os.environ["TESTING"] = "1"
-ADMIN_URL = "postgresql://hangry:hangry@localhost:5433/hangry"
+
+# The admin connection is derived from DATABASE_URL rather than hardcoded, so
+# the suite follows the database wherever it is bound. Hardcoding a port means
+# the tests only run when Postgres happens to sit on that one.
+_url = os.environ["DATABASE_URL"]
+ADMIN_URL = _url.replace("+asyncpg", "").rsplit("/", 1)[0] + "/postgres"
 
 import asyncpg  # noqa: E402
 import httpx  # noqa: E402
@@ -70,5 +75,5 @@ async def db():
 
 @pytest.fixture
 def auth():
-    """Header helper — participant auth is one opaque token, nothing more."""
+    """Header helper, participant auth is one opaque token, nothing more."""
     return lambda token: {"X-Participant-Token": token}

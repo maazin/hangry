@@ -1,4 +1,4 @@
-"""Hangry — canonical aggregation reference.
+"""Hangry, canonical aggregation reference.
 
 This is the source of truth for the decision math. `api/app/aggregation.py`
 must produce identical output on the six-person fixture; that equivalence is
@@ -18,7 +18,7 @@ Three rules, one shipped:
 Regret is measured against what was *actually achievable* from the feasible
 set, not against an ideal. If someone's favourite cuisine was eliminated by
 another participant's dietary constraint, minimax regret does not try to
-compensate them for it — they never could have had it. That property is why
+compensate them for it, they never could have had it. That property is why
 the output reads as fair to a human rather than arbitrary.
 """
 
@@ -35,7 +35,7 @@ EPS = 1e-9
 
 
 # --------------------------------------------------------------------------
-# Stage 2 — ordinal input becomes cardinal scores
+# Stage 2, ordinal input becomes cardinal scores
 # --------------------------------------------------------------------------
 
 
@@ -47,8 +47,8 @@ def borda_scores(rankings: dict[str, list[str]]) -> ScoreMatrix:
     Best-ranked option scores 1.0, worst scores 0.0.
 
     We collect ordinally and convert here rather than asking people for 1-5
-    ratings directly. Cardinal input invites inflation — everyone rates their
-    favourite 5 and everything else 1 — and every rule below degenerates into
+    ratings directly. Cardinal input invites inflation, everyone rates their
+    favourite 5 and everything else 1, and every rule below degenerates into
     "whoever cared loudest wins".
     """
     if not rankings:
@@ -73,7 +73,7 @@ def borda_scores(rankings: dict[str, list[str]]) -> ScoreMatrix:
 
 
 # --------------------------------------------------------------------------
-# Stage 3 — aggregation
+# Stage 3, aggregation
 # --------------------------------------------------------------------------
 
 
@@ -124,7 +124,7 @@ def utilitarian(scores: ScoreMatrix) -> list[str]:
 def maximin(scores: ScoreMatrix) -> list[str]:
     """Maximise the worst individual score. Overcorrects.
 
-    Optimises against disaster rather than toward a good dinner — this is the
+    Optimises against disaster rather than toward a good dinner, this is the
     rule that lands the group at the chain restaurant nobody objected to.
     """
     return sorted(_options(scores), key=lambda o: (-min_score(scores, o), -mean_score(scores, o), o))
@@ -133,7 +133,7 @@ def maximin(scores: ScoreMatrix) -> list[str]:
 def minimax_regret(scores: ScoreMatrix, distances: dict[str, float] | None = None) -> list[str]:
     """Minimise the worst individual regret. The rule Hangry ships.
 
-    Tiebreak chain is explicit — minimax regret, then utilitarian mean, then
+    Tiebreak chain is explicit, minimax regret, then utilitarian mean, then
     travel distance. Ties are common with small groups and coarse ordinal
     scores, so letting sort order decide would make the winner an accident of
     dict insertion.
@@ -195,7 +195,7 @@ def decide(scores: ScoreMatrix, distances: dict[str, float] | None = None) -> De
                 max_regret=max(row[option] for row in regrets.values()),
                 mean=mean_score(scores, option),
                 minimum=worst,
-                # Their minimum, not the group's — "this is your last choice".
+                # Their minimum, not the group's, "this is your last choice".
                 worst_for=[p for p, row in scores.items() if abs(row[option] - min(row.values())) < EPS],
             )
         )
@@ -215,7 +215,7 @@ def decide(scores: ScoreMatrix, distances: dict[str, float] | None = None) -> De
 
 # Cardinal scores as written in the doc. These illustrate the argument; the
 # live product derives scores ordinally via borda_scores() instead. Both are
-# exercised in the test suite, and they do not agree on maximin — see the
+# exercised in the test suite, and they do not agree on maximin, see the
 # note in api/tests/test_aggregation.py.
 DOC_SCORES: ScoreMatrix = {
     "Maazin": {"Mediterranean": 0.65, "Indian": 0.80, "Sushi": 0.90},

@@ -1,4 +1,4 @@
-"""Stage 1 — the feasibility filter, against the table in hangry-algorithm.md.
+"""Stage 1, the feasibility filter, against the table in hangry-algorithm.md.
 
     | Candidate           | GF  | Veg | Halal   | Result           |
     | Ramen House         | no  | yes | yes     | cut - Sam        |
@@ -58,7 +58,7 @@ def test_thai_garden_is_flagged_not_admitted(verdicts):
     """Thai Garden's halal status is *missing*, not confirmed false.
 
     Missing is not satisfied. It goes to a visibly flagged tier rather than
-    into the feasible set — anyone who actually manages a food restriction
+    into the feasible set, anyone who actually manages a food restriction
     abandons a product that guesses on this once.
     """
     thai = verdicts["Thai Garden"]

@@ -1,4 +1,4 @@
-"""Phase 3 — rankings and results
+"""Phase 3, rankings and results
 
 Revision ID: 0003
 Revises: 0002

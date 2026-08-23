@@ -1,4 +1,4 @@
-"""Groups — the durable layer that makes the second meal cheap.
+"""Groups, the durable layer that makes the second meal cheap.
 
 A session decides one meal and evaporates. A group is the six people who keep
 having the argument, so it holds their names, locations and dietary
@@ -172,8 +172,7 @@ async def read_group(group: CurrentGroup, db: DbSession, member: OptionalMember)
 
 @router.post("/{slug}/members", response_model=GroupCreated)
 async def join_group(body: ParticipantIn, group: CurrentGroup, db: DbSession) -> GroupCreated:
-    """Join a group. Unlike joining a session, this has no closing time —
-    that's the point of a group."""
+    """Join a group. Unlike joining a session, this has no closing time, that's the point of a group."""
     token = new_token()
     member = Member(
         group_id=group.id,
@@ -196,7 +195,7 @@ async def update_me(body: MemberUpdate, group: CurrentGroup, db: DbSession, memb
     """Change your own details.
 
     Rounds snapshot constraints when they start, so this never rewrites a
-    decision the group already made — it only affects the next one.
+    decision the group already made, it only affects the next one.
     """
     if body.name is not None:
         stripped = body.name.strip()
@@ -232,7 +231,7 @@ async def start_round(body: RoundCreate, group: CurrentGroup, db: DbSession, mem
     """Start a round for whoever's eating.
 
     Everyone's constraints are already known, so this both creates the round
-    and runs the solve setup — asking someone to tap "start" afterwards would
+    and runs the solve setup, asking someone to tap "start" afterwards would
     be re-asking a question the group already answered.
     """
     now = datetime.now(UTC)
@@ -295,7 +294,7 @@ async def start_round(body: RoundCreate, group: CurrentGroup, db: DbSession, mem
                 display_name=person.display_name,
                 lat=person.lat,
                 lon=person.lon,
-                # Snapshot, not a join — see Participant.member_id.
+                # Snapshot, not a join, see Participant.member_id.
                 hard_constraints=dict(person.hard_constraints or {}),
                 is_creator=person.id == member.id,
             )

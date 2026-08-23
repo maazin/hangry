@@ -4,12 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { ConstraintForm } from "@/components/ConstraintForm";
-import { Logo } from "@/components/Logo";
-import { ArrowRight, Check, Users } from "@/components/icons";
+import { Masthead } from "@/components/Logo";
+import { ArrowRight, People } from "@/components/icons";
 import { api, listGroups, rememberGroup, writeToken, type JoinPayload } from "@/lib/api";
 import { ApiError } from "@/lib/types";
-
-const PROMISES = ["No signup", "No download", "One link"];
 
 export default function CreatePage() {
   const router = useRouter();
@@ -18,38 +16,39 @@ export default function CreatePage() {
   const [groupName, setGroupName] = useState("");
   const [mine, setMine] = useState<{ slug: string; name: string }[]>([]);
 
-  // localStorage is client-only, so this can't be initial state without
-  // tripping hydration.
+  // localStorage is client only, so reading it during render would break
+  // hydration.
   useEffect(() => setMine(listGroups()), []);
 
   async function create(payload: JoinPayload) {
     setBusy(true);
     setError(null);
     try {
-      const group = await api.createGroup(groupName.trim() || "Dinner", payload);
+      const name = groupName.trim() || "Dinner";
+      const group = await api.createGroup(name, payload);
       writeToken(group.slug, group.token);
-      rememberGroup(group.slug, groupName.trim() || "Dinner");
+      rememberGroup(group.slug, name);
       router.push(`/g/${group.slug}`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't start a group. Try again.");
+      setError(e instanceof ApiError ? e.message : "Could not start a group. Try again.");
       setBusy(false);
     }
   }
 
   return (
     <main>
-      <Logo />
+      <Masthead />
 
       {mine.length > 0 ? (
-        <section className="mb-8">
-          <h2 className="label">Your groups</h2>
-          <ul className="card divide-y overflow-hidden">
-            {mine.map((group) => (
-              <li key={group.slug} style={{ borderColor: "var(--border)" }}>
-                <a className="flex items-center gap-3 px-4 py-3.5" href={`/g/${group.slug}`}>
-                  <Users size={18} style={{ color: "var(--brand)" }} />
-                  <span className="min-w-0 flex-1 truncate text-[15px] font-semibold">{group.name}</span>
-                  <ArrowRight size={17} style={{ color: "var(--text-3)" }} />
+        <section className="mb-10">
+          <h2 className="eyebrow">Your groups</h2>
+          <ul className="surface overflow-hidden">
+            {mine.map((group, index) => (
+              <li key={group.slug} style={index > 0 ? { borderTop: "1px solid var(--hairline)" } : undefined}>
+                <a className="flex items-center gap-3 px-4 py-4" href={`/g/${group.slug}`}>
+                  <People size={18} style={{ color: "var(--brand)" }} />
+                  <span className="min-w-0 flex-1 truncate font-medium">{group.name}</span>
+                  <ArrowRight size={17} style={{ color: "var(--ink-3)" }} />
                 </a>
               </li>
             ))}
@@ -57,29 +56,21 @@ export default function CreatePage() {
         </section>
       ) : null}
 
-      <section className="mb-8">
-        <h1 className="text-[34px] font-bold leading-[1.08]">
-          Settle where
-          <br />
-          the group eats.
+      <section className="mb-9">
+        <h1 className="font-serif text-display leading-[1.04]">
+          Settle where the group eats.
         </h1>
-        <p className="mt-3.5 text-[16px] leading-relaxed" style={{ color: "var(--text-2)" }}>
-          Most apps pick whatever the most people vaguely wanted — which is how the one person who can&apos;t eat
-          gluten ends up with a side salad. Hangry picks what costs the group the least, and shows you what the
-          popular answer would have cost instead.
+        <p className="mt-5 leading-relaxed" style={{ color: "var(--ink-2)" }}>
+          Most apps pick whatever the most people vaguely wanted, which is how the one person who cannot eat gluten
+          ends up with a side salad. Hangry picks the option that costs the group least, then shows you what the
+          popular answer would have cost.
         </p>
-
-        <ul className="mt-5 flex flex-wrap gap-x-5 gap-y-2">
-          {PROMISES.map((promise) => (
-            <li key={promise} className="flex items-center gap-1.5 text-[14px] font-medium">
-              <Check size={17} style={{ color: "var(--brand)" }} />
-              {promise}
-            </li>
-          ))}
-        </ul>
+        <p className="mt-4 text-subhead" style={{ color: "var(--ink-3)" }}>
+          No signup. No download. One link that keeps working.
+        </p>
       </section>
 
-      <div className="divider mb-8" />
+      <div className="rule mb-9" />
 
       <ConstraintForm
         mode="join"
@@ -89,8 +80,8 @@ export default function CreatePage() {
         onSubmit={create}
         prelude={
           <div>
-            <label className="label" htmlFor="group-name">
-              What&apos;s the group?
+            <label className="eyebrow" htmlFor="group-name">
+              What is the group?
             </label>
             <input
               id="group-name"
@@ -100,9 +91,9 @@ export default function CreatePage() {
               placeholder="Thursday dinner"
               maxLength={60}
             />
-            <p className="mt-2 text-[13px]" style={{ color: "var(--text-3)" }}>
-              You&apos;ll get one link to share. Everyone says what they can&apos;t eat once, and it&apos;s remembered
-              for every meal after.
+            <p className="mt-2 text-footnote" style={{ color: "var(--ink-3)" }}>
+              You get one link to share. Everyone says what they cannot eat once, and it is remembered for every
+              meal after.
             </p>
           </div>
         }

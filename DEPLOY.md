@@ -4,7 +4,7 @@ Two services and a database: the API on Fly.io, the web app on Vercel,
 Postgres wherever you like (Fly's managed Postgres is the shortest path).
 
 Everything here needs your accounts, so these are commands for you to run.
-The repo is already configured for them — `api/Dockerfile`, `api/fly.toml`,
+The repo is already configured for them, `api/Dockerfile`, `api/fly.toml`,
 and the environment variables below are in place and verified.
 
 **Budget 45 minutes.** Do it before you need it. Discovering the deploy is
@@ -37,7 +37,7 @@ flyctl auth login && vercel login
 
 ## 2. Launch the API (don't deploy yet)
 
-From `api/`. The `--no-deploy` matters — the app needs a database attached
+From `api/`. The `--no-deploy` matters, the app needs a database attached
 before its first boot, or the release command fails on connect.
 
 ```bash
@@ -62,7 +62,7 @@ flyctl postgres attach hangry-db --app hangry-api
 ```
 
 `attach` sets `DATABASE_URL` on the app as a `postgres://` URL. You don't
-need to convert it — `api/app/config.py` rewrites the scheme to the asyncpg
+need to convert it, `api/app/config.py` rewrites the scheme to the asyncpg
 driver on load, which is verified by a unit test.
 
 ## 4. Deploy the API
@@ -80,7 +80,7 @@ curl https://hangry-api.fly.dev/api/health
 ```
 
 Expect `{"api":"ok","db":"ok"}`. If `db` says `unreachable`, the attach step
-didn't take — check `flyctl secrets list --app hangry-api`.
+didn't take, check `flyctl secrets list --app hangry-api`.
 
 ## 5. Deploy the web app
 
@@ -94,7 +94,7 @@ cd web && vercel link
 vercel env add NEXT_PUBLIC_API_URL production
 ```
 
-Paste your API origin — `https://hangry-api.fly.dev`, no trailing slash.
+Paste your API origin, `https://hangry-api.fly.dev`, no trailing slash.
 
 `NEXT_PUBLIC_*` variables are compiled into the bundle, so this must exist
 *before* the build. Changing it later needs a redeploy, not a restart.
@@ -113,7 +113,7 @@ Comma-separate to allow more than one origin (a custom domain, say). Setting
 a secret restarts the machine on its own.
 
 A missing origin here fails every browser request with a CORS error, which
-in the UI is indistinguishable from the API being down — so if the deployed
+in the UI is indistinguishable from the API being down, so if the deployed
 site loads but nothing works, check this first.
 
 ## 7. Verify like a user
@@ -153,7 +153,7 @@ flyctl secrets set CORS_ORIGINS="https://hangry.example.com,https://your-app.ver
 |---|---|
 | Site loads, every action fails | `CORS_ORIGINS` missing the web origin (step 6) |
 | `db: unreachable` on health | Postgres not attached, or attached to the wrong app |
-| Deploy aborts in release phase | A migration failed — `flyctl logs` shows the SQL error |
+| Deploy aborts in release phase | A migration failed, `flyctl logs` shows the SQL error |
 | Links unfurl as bare URLs | `NEXT_PUBLIC_SITE_URL` unset on a custom domain |
 | API calls hit localhost in prod | `NEXT_PUBLIC_API_URL` set after the build, so not baked in |
 | First solve in a new city is slow | Cold geohash tiles. Overpass is being called; it's cached for 30 days after |

@@ -1,4 +1,4 @@
-"""Stage 1 — the feasibility filter.
+"""Stage 1, the feasibility filter.
 
 Hard constraints eliminate. They never down-weight. A candidate violating
 *any* participant's hard constraint is gone, however many other people would
@@ -8,7 +8,7 @@ Three tiers come out:
 
     feasible     every hard constraint answered, none violated
     unverified   nothing violated, but the data cannot answer someone's
-                 constraint — shown, visibly flagged, kept out of the ranking
+                 constraint, shown, visibly flagged, kept out of the ranking
     eliminated   at least one hard constraint provably violated
 
 The unverified tier is the product, not defensive engineering. Someone who
@@ -40,7 +40,7 @@ TIER_ELIMINATED = "eliminated"
 class Reason:
     """Why a candidate was cut or flagged.
 
-    Always names a participant and a constraint. Never a bare boolean — the
+    Always names a participant and a constraint. Never a bare boolean, the
     UI has to be able to say "three places were cut because Sam can't eat
     there", and that sentence needs both halves.
     """
@@ -85,7 +85,7 @@ def hours_status(hours: str | None, now: datetime) -> Status:
     """Is this place open at `now` (naive local time)?
 
     `opening_hours` is its own grammar with real edge cases, so it is parsed
-    by the dedicated package. Absent or unparseable hours are UNKNOWN — never
+    by the dedicated package. Absent or unparseable hours are UNKNOWN, never
     assumed open, and never assumed closed either, since a stale tag should
     flag a place rather than silently delete it from the group's options.
     """
@@ -117,7 +117,7 @@ def evaluate(place: Place, participants: list[Participant], now: datetime) -> Ve
 
     # Distance is measured from each participant's own location, so the
     # verdict's own distance is reported from the group centroid's nearest
-    # participant view — see `worst_distance` below.
+    # participant view, see `worst_distance` below.
     distances = {p.id: haversine_m(p.lat, p.lon, place.lat, place.lon) for p in participants}
 
     for participant in participants:
@@ -129,7 +129,7 @@ def evaluate(place: Place, participants: list[Participant], now: datetime) -> Ve
             if diet in ADVISORY_DIETS:
                 # No OSM schema exists for allergens. Surfaced as a standing
                 # advisory on every candidate instead of tiering everything
-                # into unverified — see constraints.ADVISORY_DIETS.
+                # into unverified, see constraints.ADVISORY_DIETS.
                 continue
             if diet not in FILTERABLE_DIETS:
                 continue
@@ -209,8 +209,7 @@ class Actor:
 def relax(participants: list[Participant], *, distance_multiplier: float = 1.0, drop_price: bool = False) -> list[Actor]:
     """Loosen constraints in the one order the product is allowed to loosen them.
 
-    Distance first, then price. **Dietary constraints are never touched** —
-    not here, not anywhere. `diets` is copied through verbatim on purpose:
+    Distance first, then price. **Dietary constraints are never touched**, not here, not anywhere. `diets` is copied through verbatim on purpose:
     relaxing it would silently put someone in front of food they can't eat,
     which is the single failure this product cannot have.
     """

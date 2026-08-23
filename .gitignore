@@ -12,7 +12,7 @@ web/out/
 web/next-env.d.ts
 *.tsbuildinfo
 
-# env — nothing with credentials in it goes near the remote
+# env, nothing with credentials in it goes near the remote
 .env
 .env.*
 !.env.example

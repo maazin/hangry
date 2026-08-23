@@ -228,7 +228,7 @@ async def test_creator_can_force_a_solve_before_everyone_ranks(client, db):
     assert forced.status_code == 200
 
     # Non-voters are absent from the matrix rather than assigned an invented
-    # preference — they expressed none.
+    # preference, they expressed none.
     assert forced.json()["alternates"]["voters"] == ["Jordan", "Maazin"]
     assert "Priya" in forced.json()["alternates"]["non_voters"]
 
@@ -266,7 +266,7 @@ async def test_an_allergy_rides_along_as_an_advisory_not_a_filter(client, db):
 
 
 async def test_an_impossible_group_is_told_whose_constraints_bind(client, db):
-    """A genuine conflict — every option provably violates someone. Never a
+    """A genuine conflict, every option provably violates someone. Never a
     bare "no results": the group is told who is binding so they can act."""
     slug, tokens, started = await run_session(
         client,
@@ -303,7 +303,7 @@ async def test_no_data_is_reported_differently_from_a_conflict(client, db):
 async def test_sparse_data_still_produces_a_vote_but_says_so(client, db):
     """The real-world case. OSM dietary coverage is 1-6% even in dense
     cities, so a group with a restriction usually has an empty verified set.
-    The vote runs on flagged candidates rather than dead-ending — and the
+    The vote runs on flagged candidates rather than dead-ending, and the
     flag is never softened into "safe"."""
     people = [("Sam", ["kosher"]), ("Ana", []), ("Dev", [])]
     slug, tokens, started = await run_session(client, db, people=people)

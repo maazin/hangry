@@ -1,4 +1,4 @@
-"""Stage 3 — aggregation, ported from the canonical `aggregate.py` at the
+"""Stage 3, aggregation, ported from the canonical `aggregate.py` at the
 repo root.
 
 The core math below is a direct port and must stay logically identical to the
@@ -18,7 +18,7 @@ EPS = 1e-9
 
 
 # --------------------------------------------------------------------------
-# Core math — keep in lockstep with aggregate.py
+# Core math, keep in lockstep with aggregate.py
 # --------------------------------------------------------------------------
 
 
@@ -147,7 +147,7 @@ def decide(scores: ScoreMatrix, distances: dict[str, float] | None = None) -> De
 
 
 # --------------------------------------------------------------------------
-# API glue — no counterpart in aggregate.py
+# API glue, no counterpart in aggregate.py
 # --------------------------------------------------------------------------
 
 
@@ -183,7 +183,7 @@ def annotate(decision: Decision, scores: ScoreMatrix) -> list[dict]:
         lasts = result.worst_for
 
         if index == 0:
-            note = "Best balance — nobody gives up much to be here."
+            note = "Best balance. Nobody gives up much to be here."
             if option == util_pick:
                 note = "Best balance, and the group favourite. No tradeoff to make."
             elif lasts and people > 1:
@@ -193,7 +193,7 @@ def annotate(decision: Decision, scores: ScoreMatrix) -> list[dict]:
             note += f", but {_names(lasts)} wouldn't eat." if lasts else "."
             note += " This is what a majority vote picks."
         elif option == maximin_pick:
-            note = "Safest option — nobody's worst choice"
+            note = "Safest option. Nobody's worst choice"
             note += f", but only {_plural(len(firsts))} put it first." if firsts else "."
         elif lasts:
             note = f"{_names(lasts)} ranked it last."

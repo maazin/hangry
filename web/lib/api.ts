@@ -13,7 +13,7 @@ const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 /**
  * There are no accounts. A participant is an opaque token in localStorage,
- * scoped to the session slug — so the same phone can be in two groups at
+ * scoped to the session slug, so the same phone can be in two groups at
  * once and neither knows about the other.
  */
 const tokenKey = (slug: string) => `hangry:token:${slug}`;
@@ -33,7 +33,7 @@ export function clearToken(slug: string) {
 
 /**
  * A member's group token *is* their token in every round, so copying it onto
- * the round slug lets the round page authenticate with no extra concept —
+ * the round slug lets the round page authenticate with no extra concept,
  * one string per group on the phone, not one per meal.
  */
 export function adoptTokenForRound(groupSlug: string, roundSlug: string) {
@@ -41,7 +41,7 @@ export function adoptTokenForRound(groupSlug: string, roundSlug: string) {
   if (token && readToken(roundSlug) !== token) writeToken(roundSlug, token);
 }
 
-/** Groups the phone has joined, newest first — the "my groups" list. */
+/** Groups the phone has joined, newest first. Powers the groups list. */
 const GROUPS_KEY = "hangry:groups";
 
 export function rememberGroup(slug: string, name: string) {

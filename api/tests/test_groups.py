@@ -1,4 +1,4 @@
-"""Groups — the durable layer.
+"""Groups, the durable layer.
 
 The point of a group is that the *second* meal is cheap: nobody re-enters a
 name, a location, or a dietary constraint. Most of these tests are really
@@ -68,7 +68,7 @@ async def test_creating_a_group_enrols_the_founder(client):
 
 
 async def test_anyone_with_the_link_can_join_and_invite(client):
-    """There is no invite list — the link is the invite, so a joiner can pass
+    """There is no invite list, the link is the invite, so a joiner can pass
     it on without the founder being involved."""
     group = await make_group(client)
     await add_member(client, group["slug"], "Sam", ["gluten_free"])
@@ -157,13 +157,13 @@ async def test_leaving_removes_you_from_the_roster(client):
 
 
 # --------------------------------------------------------------------------
-# rounds — the payoff
+# rounds, the payoff
 # --------------------------------------------------------------------------
 
 
 async def test_a_round_starts_with_nobody_re_entering_anything(client, db):
     """The whole point. Six people, and the round is ready to rank
-    immediately — no join step, no constraint form, no waiting."""
+    immediately, no join step, no constraint form, no waiting."""
     slug, tokens = await full_group(client, db)
 
     started = await client.post(f"/api/groups/{slug}/rounds", json={}, headers=auth(tokens["Maazin"]))

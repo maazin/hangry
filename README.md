@@ -3,7 +3,7 @@
 Six people, one link, dinner sorted. No signup, no download.
 
 Hangry picks somewhere a group can eat by minimising the worst individual
-*regret* rather than maximising the group average — and then shows the group
+*regret* rather than maximising the group average, then shows the group
 what the popular answer would have cost, and whom.
 
 ```
@@ -43,8 +43,8 @@ Then open http://localhost:3000. `GET /api/health` should return
 cd api && .venv/bin/python -m pytest -q
 ```
 
-147 tests, against a real Postgres (`hangry_test`, created automatically) —
-not SQLite. The schema leans on JSONB, `text[]` and native uuid, and a filter
+147 tests, against a real Postgres (`hangry_test`, created automatically)
+rather than SQLite. The schema leans on JSONB, `text[]` and native uuid, and a filter
 whose entire job is keeping `null` distinct from `"no"` should not be
 validated on a database with different null semantics than production.
 
@@ -73,19 +73,19 @@ six sets of dietary constraints. That is the difference between a demo and
 something a group actually uses on a Thursday.
 
 **Still no accounts.** The group *is* its link. Membership is the same opaque
-`localStorage` token used for participants — and deliberately the *same
+`localStorage` token used for participants, and deliberately the *same
 token*, so a member's group token authenticates them inside every round and a
 phone stores exactly one string per group.
 
 **The payoff is round two.** Everyone's constraints are already known, so
 starting a round skips joining and the constraint form entirely and goes
 straight to ranking. Any member can start one, not just whoever created the
-group — the people who eat together are peers.
+group. The people who eat together are peers.
 
 **Who's eating.** A round defaults to the whole group, and the starter can
 drop anyone who isn't coming. This is not cosmetic: applying an absent
 member's dietary constraint would narrow the options for a meal they aren't
-at. It also cuts the other way — with a celiac and a halal member excluded
+at. It also cuts the other way. With a celiac and a halal member excluded
 from a test round, the candidate set went from *entirely unverified* to
 fully verified, because there were fewer questions the sparse OSM data had to
 answer.
@@ -102,17 +102,17 @@ group across two ballots, which is the failure this product exists to end.
 
 Three stages. Full walkthrough in `hangry-algorithm.md`.
 
-**Stage 1 — feasibility.** Hard constraints eliminate; they never
+**Stage 1, feasibility.** Hard constraints eliminate; they never
 down-weight. Three tiers come out: `feasible`, `unverified` (nothing
 violated, but the data cannot answer someone's constraint), `eliminated`.
 Every cut stores *why*, naming a participant and a constraint.
 
-**Stage 2 — ordinal scoring.** People rank; rank converts to score via
-normalised Borda, `(m - rank) / (m - 1)`. Never 1–5 ratings — cardinal input
+**Stage 2, ordinal scoring.** People rank; rank converts to score via
+normalised Borda, `(m - rank) / (m - 1)`. Never 1 to 5 ratings, since cardinal input
 invites inflation and every rule degenerates into "whoever cared loudest
 wins".
 
-**Stage 3 — aggregation.** All three rules are implemented; minimax regret
+**Stage 3, aggregation.** All three rules are implemented; minimax regret
 ships.
 
 ```
@@ -125,8 +125,8 @@ The other two stay because the *comparison is a shipped feature*: the results
 page shows what a straight majority vote would have picked and who it would
 have excluded.
 
-On the doc's six-person fixture all three rules pick differently — Sushi Bar,
-Mediterranean Grill, Indian Kitchen — which is the entire argument.
+On the doc's six-person fixture all three rules pick differently: Sushi Bar,
+Mediterranean Grill, Indian Kitchen. That divergence is the entire argument.
 
 ---
 
@@ -145,7 +145,7 @@ Relaxation loosens distance and price and **never** diets.
 ## What the real data actually looks like
 
 Measured against live Overpass, one geohash-5 tile over the East Village,
-Manhattan — one of the densest restaurant districts anywhere:
+Manhattan, one of the densest restaurant districts anywhere:
 
 | constraint | tagged yes/only | tagged no | absent | coverage |
 |---|---:|---:|---:|---:|
@@ -157,16 +157,16 @@ Manhattan — one of the densest restaurant districts anywhere:
 
 2,033 named places. `opening_hours` on 61%, `cuisine` on 81%.
 
-This is not a bug and not a tuning problem — it is the finding. For any group
+This is the finding rather than a bug or a tuning problem. For any group
 containing a dietary restriction, the *fully verified* candidate set is
 essentially always empty. A strict reading of "unverified is excluded from
 the ranking" therefore means refusing to answer nearly every real group.
 
 **How this build handles it.** When there aren't enough verified candidates,
-the vote runs on unverified ones instead of dead-ending — flagged, never
+the vote runs on unverified ones instead of dead-ending, flagged and never
 softened. Each is labelled `unverified` on the ranking screen and the result,
 carries the per-person reason ("no gluten-free information in the data, and
-Sam needs gluten-free"), and the winner card says *Not verified — call
+Sam needs gluten-free"), and the winner card says *Not verified, call
 ahead*. Nothing is ever presented as safe. `unverified_used` on
 `POST /start` says which mode you're in, and verified candidates always win
 when enough exist.
@@ -175,8 +175,8 @@ This is the one deliberate departure from the PRD, and it is the difference
 between a demo and something usable. It is easy to reverse: drop the
 `unverified_used` branch in `start_session` to restore strict behaviour.
 
-**Allergens are worse.** OSM has no allergen schema at all — not sparse,
-absent. Nut and shellfish allergies therefore cannot be filtered on, and
+**Allergens are worse.** OSM has no allergen schema at all. The tags are
+absent rather than sparse. Nut and shellfish allergies therefore cannot be filtered on, and
 routing them through the unverified tier would tip *every* candidate into it
 and destroy the signal the tier carries. They become a standing advisory
 naming the person instead: *"OpenStreetMap has no allergen data, so nut
@@ -187,71 +187,70 @@ with the restaurant."*
 
 ## Design
 
-Delivery apps are loud because they are selling you a hundred restaurants.
-Hangry sells one decision, so the borrowing from DoorDash, Uber Eats and
-Grubhub is structural rather than visual — full-width primary actions,
-generous list rows, one saturated brand colour doing all the work. The rest
-is restraint: hairline borders, one type family, real whitespace, and no
-shadow doing a border's job.
+Built against Apple's Human Interface Guidelines, with three rules doing most
+of the work.
 
-**The rule the palette may not break.** `unverified` is amber, and stays
-amber in both themes. It is the only thing on screen that can hurt someone,
-so it never gets absorbed into the brand green. Anything that reads as a
-safety state — the ranking banner, the winner card's *call ahead* block, the
-per-row badge — uses `--warn`, never `--brand`.
+**Hierarchy comes from size, weight and space before it comes from colour.**
+Two typefaces, each with one job. Instrument Sans runs the interface, where
+legibility at 13px matters more than personality. Instrument Serif appears
+only on the lines that carry weight: the page headline and the name of the
+restaurant the group is going to. Keeping the serif rare is what stops it
+reading as decoration.
 
-**Tokens.** Everything lives in [`web/app/globals.css`](web/app/globals.css)
-as custom properties, with a dark theme under `prefers-color-scheme`. The
-same names are mirrored into `tailwind.config.ts` so utility classes and
-component classes cannot drift into two different palettes. Change a colour
-in one place and both follow.
+**Every pairing is measured, not judged by eye.** The previous palette had
+three failures against WCAG, including the caption colour that carries the
+cuisine and distance under every restaurant name (2.95:1, where 4.5:1 is the
+floor). Every colour below clears 4.5:1 on both the canvas and the card
+surface, in both themes.
 
-| role | light | dark |
-|---|---|---|
-| `--bg` / `--surface` | `#f7f9f7` / `#ffffff` | `#0a0f0c` / `#111815` |
-| `--text` / `--text-2` | `#0e1512` / `#59665f` | `#ecf2ee` / `#93a099` |
-| `--brand` | `#099250` | `#24c67c` |
-| `--warn` | `#b54708` | `#fdb022` |
-| `--danger` | `#b42318` | `#fda29b` |
+| role | light | dark | worst ratio |
+|---|---|---|---:|
+| body text | `#1b1a16` | `#f0ece3` | 14.6:1 |
+| secondary | `#565044` | `#aba396` | 6.9:1 |
+| caption | `#6b6455` | `#938b7d` | 5.1:1 |
+| brand | `#24503f` | `#7fa890` | 6.5:1 |
+| caution | `#8c4a24` | `#cf9c3c` | 6.0:1 |
 
-**Type.** Inter via `next/font`, self-hosted at build time — there is no
-third-party request on the joiner's first paint, which is the only paint most
-of them will wait for. Headings run `-0.028em` tracking, body `-0.011em`.
-One family, four weights.
+**Colour never carries meaning alone.** The unverified state always arrives
+with an icon and the word beside it. This matters most in dark mode, where
+the sage and the amber sit at almost identical luminance, so hue by itself
+would separate them for nobody. Chip selection uses fill and weight rather
+than a tick, which survives both colour blindness and a monochrome screen.
 
-**Component classes.** `.card`, `.btn` (`-primary` / `-secondary` / `-quiet`),
-`.chip`, `.field`, `.label`, `.badge`, `.panel-warn`, `.row`. Prefer these
-over ad-hoc utilities so a restyle stays a one-file change. Interactive
-targets are ≥52px on the primary path; every joiner is assumed to be on a
-phone, one-handed, in a doorway.
+The palette is warm ivory, deep pine and aged brass. Saturation stays low so
+the one thing on screen that can hurt someone has room to stand out. Nothing
+is pure white; the lightest surface is `#fdfbf6`. Corners are cut close, 2px
+to 6px. There are no gradients anywhere in the interface.
 
-**Accessibility.** One `:focus-visible` treatment everywhere. Drag-to-reorder
-has arrow-button and keyboard equivalents — dragging is hard one-handed and
-impossible with a screen reader, so the arrows are a parallel path rather
-than a fallback. `prefers-reduced-motion` is honoured.
+**Sizes are in rem**, so the browser text setting reaches the whole interface.
+At 200 percent the body goes from 17px to 34px with no horizontal overflow,
+which is the enlargement the HIG asks for and which the previous fixed-pixel
+build could not do. Every interactive target clears 44pt, verified against
+the live DOM rather than the stylesheet.
+
+Labels are sentence case. The HIG writing guidance prefers it, and small
+uppercase text is harder to read.
 
 ## Assets
 
-All generated from source in the repo; there are no binary design files to
+All generated from source in the repo. There are no binary design files to
 keep in sync.
 
 | file | what it is |
 |---|---|
 | [`web/app/icon.svg`](web/app/icon.svg) | favicon and app icon |
-| [`web/components/Logo.tsx`](web/components/Logo.tsx) | the same mark in-product, plus wordmark |
-| [`web/components/icons.tsx`](web/components/icons.tsx) | line icons — one 24px grid, 1.75 stroke, round caps |
-| [`web/app/opengraph-image.tsx`](web/app/opengraph-image.tsx) | 1200×630 link preview, rendered by `next/og` |
-| [`web/app/apple-icon.tsx`](web/app/apple-icon.tsx) | 180×180 iOS home-screen icon |
+| [`web/components/Logo.tsx`](web/components/Logo.tsx) | the same mark in product, plus the masthead |
+| [`web/components/icons.tsx`](web/components/icons.tsx) | line icons on one 24px grid, 1.6 stroke |
+| [`web/app/opengraph-image.tsx`](web/app/opengraph-image.tsx) | 1200x630 link preview, rendered by `next/og` |
+| [`web/app/apple-icon.tsx`](web/app/apple-icon.tsx) | 180x180 iOS home screen icon |
 
-**The mark** is a fork with a tick. A fork alone says "food app"; the tick is
-what makes it this one, since the product's whole claim is that the argument
-is over. Drawn as solid paths rather than strokes so it stays crisp at 16px.
+The mark is a single fork, cut square, flat pine on ivory. The drag handle in
+the ranking list is two horizontal rules, since a six dot grid reads as
+texture at small sizes.
 
-**The link preview is a growth surface, not decoration.** The only way Hangry
-spreads is one person pasting a link into a group chat, and a bare URL gets
-scrolled past. Both generated images draw the mark as inline SVG rather than
-a 🍴 emoji — Satori ships no colour emoji font and renders it as a grey
-glyph, which quietly breaks the brand in the one place it is most visible.
+**The link preview is a distribution surface.** The only way Hangry travels is
+one person pasting a link into a group chat, and a bare URL gets scrolled
+past.
 
 ---
 
@@ -274,7 +273,7 @@ api/
   tests/                  147 tests
 web/
   app/
-    page.tsx              / — create a group, and your groups list
+    page.tsx              /, create a group, and your groups list
     g/[slug]/page.tsx     the group: roster, invite, start a round
     s/[slug]/page.tsx     one round, driven by its status
     globals.css           design tokens and component classes
@@ -294,7 +293,7 @@ web/
 ```
 GET    /api/health
 
-# groups — the durable layer
+# groups, the durable layer
 POST   /api/groups                       create + enrol founder
 GET    /api/groups/{slug}                roster, history, live round
 POST   /api/groups/{slug}/members        join; anyone with the link, no closing time
@@ -317,7 +316,7 @@ Everyone's constraints are already known, so making someone tap "start"
 afterwards would re-ask a question the group already answered.
 
 Auth is one opaque token per participant per session, in `localStorage`,
-sent as `X-Participant-Token`. Not real auth — it stops accidental
+sent as `X-Participant-Token`. Not real auth, it stops accidental
 cross-writes between six people in a group chat, which is the correct level
 for an ephemeral session holding no personal data.
 
@@ -332,7 +331,7 @@ Two deviations from the PRD's contract, both deliberate:
 ## Deploying
 
 API on Fly.io, web on Vercel, Postgres wherever. The repo is configured for
-it — `api/Dockerfile`, `api/fly.toml`, and the environment variables in the
+it, `api/Dockerfile`, `api/fly.toml`, and the environment variables in the
 two `.env.example` files are in place, and the container has been built and
 run against Postgres to confirm it serves.
 
@@ -340,7 +339,7 @@ run against Postgres to confirm it serves.
 commands are yours to run. Three things in there are worth knowing before
 you start:
 
-- The **order is circular** — the web build bakes in the API's URL, and the
+- The **order is circular**. The web build bakes in the API's URL, and the
   API needs the web origin for CORS. Deploy the API first, then the web app,
   then set `CORS_ORIGINS`.
 - Managed Postgres injects `DATABASE_URL` as `postgres://`, which SQLAlchemy
@@ -352,7 +351,7 @@ you start:
 ## Not built
 - **WebSockets** (Phase 5). Polling every 3s, as the PRD specifies for v1.
 - **Isochrones, PostGIS, Foursquare** (Phases 6–7). Saved groups landed
-  early — see *Groups and rounds* — because without them the product only
+  early, see *Groups and rounds*, because without them the product only
   worked once per set of friends.
 - **Analytics.** No third-party script was added without asking. The numbers
   the PRD wants are all derivable from `sessions`, `participants` and

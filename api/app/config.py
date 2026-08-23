@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     def async_driver(cls, value: str) -> str:
         """Force the asyncpg driver onto whatever the host handed us.
 
-        Every managed Postgres — Fly, Render, Railway, Heroku — injects
+        Every managed Postgres, Fly, Render, Railway, Heroku, injects
         DATABASE_URL as `postgres://` or `postgresql://`, which SQLAlchemy
         resolves to psycopg2 and then dies on, because this app is async.
         Rewriting it here means the deploy works with the platform's variable
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     testing: bool = False
 
     # Overpass is free but slow and rate-limited. It is never called on the
-    # request path when the geohash tile is fresh — see osm.py.
+    # request path when the geohash tile is fresh, see osm.py.
     overpass_url: str = "https://overpass-api.de/api/interpreter"
     overpass_timeout_s: float = 30.0
     tile_ttl_days: int = 30
