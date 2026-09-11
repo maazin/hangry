@@ -1,0 +1,38 @@
+# Render Blueprint.
+#
+# Point Render at this repository and it reads this file, so the API can be
+# deployed from the dashboard without touching a terminal. Both values marked
+# `sync: false` are filled in the Render UI, because one is a secret and the
+# other is not known until Vercel has given the web app its domain.
+services:
+  - type: web
+    name: hangry-api
+    runtime: docker
+    plan: free
+    region: oregon
+    rootDir: api
+    dockerfilePath: ./Dockerfile
+
+    # Render polls this after each deploy and will not cut traffic over until
+    # it answers. It touches the database, so a bad DATABASE_URL fails the
+    # deploy rather than going live broken.
+    healthCheckPath: /api/health
+
+    envVars:
+      # From Neon. Paste the pooled connection string unchanged; the app
+      # rewrites the scheme to the asyncpg driver on load.
+      - key: DATABASE_URL
+        sync: false
+
+      # The Vercel origin, with no trailing slash. Missing this means every
+      # browser request fails CORS and the site looks like it is down.
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Render's free plan has no pre-deploy hook, so migrations run at
+      # container start. See api/entrypoint.sh.
+      - key: RUN_MIGRATIONS_ON_START
+        value: "true"
+
+      - key: LOG_LEVEL
+        value: INFO

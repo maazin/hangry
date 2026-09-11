@@ -39,8 +39,17 @@ class Settings(BaseSettings):
     tile_ttl_days: int = 30
 
     session_ttl_hours: int = 24
+
+    # Retention. The interface promises rounds delete themselves, so a sweep
+    # runs in-process and makes that true. See app/retention.py.
+    purge_enabled: bool = True
+    purge_interval_minutes: int = 60
+    group_retention_days: int = 90
+
     candidate_target: int = 8
     candidate_minimum: int = 3
+
+    log_level: str = "INFO"
 
     # Comma-separated. The browser talks to this API cross-origin, so a
     # forgotten production origin here looks exactly like the API being down.

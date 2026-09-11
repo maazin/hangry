@@ -7,15 +7,20 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Dependencies first, so a code change doesn't reinstall the world.
+# Dependencies first, so a code change does not reinstall the world.
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+RUN chmod +x entrypoint.sh
 
-# Hosts inject the port; 8080 is Fly's default.
+# Drop root. Nothing here needs it, and a container that does not run as root
+# limits what a compromised dependency can reach.
+RUN useradd --create-home --uid 10001 hangry && chown -R hangry:hangry /app
+USER hangry
+
+# Hosts inject the port. 8080 is the default on both Fly and Render.
 ENV PORT=8080
 EXPOSE 8080
 
-# Shell form on purpose, $PORT has to expand at runtime, not build time.
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT}
+CMD ["./entrypoint.sh"]

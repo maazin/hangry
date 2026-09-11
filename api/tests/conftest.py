@@ -27,7 +27,26 @@ from sqlalchemy import text  # noqa: E402
 from app.db import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
-TABLES = "rankings, results, candidates, participants, sessions, places, tile_cache"
+# Every table, in an order that respects the foreign keys, so a row from one
+# test cannot reach the next. Adding a table to the schema and forgetting it
+# here shows up as tests that pass alone and fail in sequence.
+#
+# DELETE rather than TRUNCATE on purpose. TRUNCATE takes an ACCESS EXCLUSIVE
+# lock, so it waits on any connection the previous test has not finished
+# closing, and asyncpg closes lazily once that test's event loop is gone. That
+# produced failures that moved around between runs. These tables hold tens of
+# rows, so the speed argument for TRUNCATE does not apply.
+TABLES = [
+    "rankings",
+    "results",
+    "candidates",
+    "participants",
+    "sessions",
+    "members",
+    "groups",
+    "places",
+    "tile_cache",
+]
 
 
 @pytest_asyncio.fixture(scope="session", loop_scope="session", autouse=True)
@@ -56,7 +75,8 @@ async def _clean():
     """Truncate between tests. Cheaper than per-test transactions, and the
     code under test commits, so a wrapping transaction wouldn't isolate."""
     async with engine.begin() as db:
-        await db.execute(text(f"truncate {TABLES} restart identity cascade"))
+        for table in TABLES:
+            await db.execute(text(f"delete from {table}"))
     yield
 
 

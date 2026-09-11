@@ -43,7 +43,7 @@ Then open http://localhost:3000. `GET /api/health` should return
 cd api && .venv/bin/python -m pytest -q
 ```
 
-147 tests, against a real Postgres (`hangry_test`, created automatically)
+155 tests, against a real Postgres (`hangry_test`, created automatically)
 rather than SQLite. The schema leans on JSONB, `text[]` and native uuid, and a filter
 whose entire job is keeping `null` distinct from `"no"` should not be
 validated on a database with different null semantics than production.
@@ -267,10 +267,11 @@ api/
     geo.py                geohash, haversine, centroid
     routes.py             sessions/rounds
     routes_groups.py      groups, members, starting rounds
+    retention.py          deletes what the interface promised to delete
     models.py schemas.py deps.py db.py config.py slug.py main.py
   alembic/versions/       0001 sessions · 0002 places · 0003 rankings
                           0004 locked   · 0005 groups and members
-  tests/                  147 tests
+  tests/                  155 tests
 web/
   app/
     page.tsx              /, create a group, and your groups list
@@ -279,6 +280,7 @@ web/
     globals.css           design tokens and component classes
     layout.tsx            font, metadata, theme colour
     icon.svg  opengraph-image.tsx  apple-icon.tsx
+    robots.ts  sitemap.ts    keep private links out of search
   components/
     GroupView.tsx         roster, invite, start a round
     SessionView.tsx       one round: join → lobby → rank → result
@@ -330,23 +332,51 @@ Two deviations from the PRD's contract, both deliberate:
 
 ## Deploying
 
-API on Fly.io, web on Vercel, Postgres wherever. The repo is configured for
-it, `api/Dockerfile`, `api/fly.toml`, and the environment variables in the
-two `.env.example` files are in place, and the container has been built and
-run against Postgres to confirm it serves.
+Three services, each with a web dashboard, each on a free plan, all connected
+to GitHub. No terminal.
 
-**[DEPLOY.md](DEPLOY.md) is the runbook.** It needs your accounts, so the
-commands are yours to run. Three things in there are worth knowing before
-you start:
+| Piece | Where | Cost |
+|---|---|---|
+| Database | Neon | Free |
+| API | Render, from `render.yaml` | Free |
+| Web app | Vercel | Free |
 
-- The **order is circular**. The web build bakes in the API's URL, and the
-  API needs the web origin for CORS. Deploy the API first, then the web app,
-  then set `CORS_ORIGINS`.
-- Managed Postgres injects `DATABASE_URL` as `postgres://`, which SQLAlchemy
-  resolves to psycopg2 and dies on. `app/config.py` rewrites the scheme, so
-  paste the platform's value unchanged.
-- `NEXT_PUBLIC_*` is compiled into the bundle. Setting it after the build
-  does nothing until you redeploy.
+**[DEPLOY.md](DEPLOY.md) is the guide.** It happens in your accounts, so the
+clicking is yours to do. Four things in it are worth knowing before you start:
+
+- **The free API plan sleeps.** Render stops a free service after a quiet
+  spell and takes roughly 50 seconds to wake. That lands badly on a product
+  whose promise is half a minute per person. A free uptime pinger on
+  `/api/health` every 10 minutes avoids it, and the guide sets that up.
+- **The order is circular.** The web build compiles in the API address, and
+  the API needs the web origin for CORS. Database, then API with a
+  placeholder, then web app, then back to fill the placeholder in.
+- **Set the Vercel root directory to `web`.** Without it the build looks for
+  a Next.js app at the repository root and fails.
+- **Managed Postgres hands over a `postgres://` URL**, which SQLAlchemy maps
+  to psycopg2 and then fails on, because this app is async. `app/config.py`
+  rewrites the scheme, so the platform's value can be pasted unchanged.
+
+`api/fly.toml` is committed too, for Fly.io. It keeps a machine warm and runs
+migrations as a release step, so a failed migration aborts the deploy rather
+than landing. It needs a card and the CLI.
+
+## Retention
+
+The interface tells people their data goes away, in three places. `app/retention.py`
+is what makes those sentences true.
+
+An hourly sweep inside the API removes expired rounds along with their
+participants, candidates, rankings and results, and removes groups nobody has
+opened for 90 days along with their members. Both leans on `ON DELETE CASCADE`
+in the schema, so the children go with the parent in a single statement.
+
+`places` and `tile_cache` stay. They hold no personal data, they cache public
+map data, and clearing them would send every group back to Overpass for
+results it already fetched.
+
+Crawlers are kept out of `/g/` and `/s/` by `web/app/robots.ts`. Those links
+are unlisted rather than private, and a search index would make them neither.
 
 ## Not built
 - **WebSockets** (Phase 5). Polling every 3s, as the PRD specifies for v1.
