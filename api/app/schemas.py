@@ -42,7 +42,7 @@ class ParticipantIn(BaseModel):
 
 class SessionCreate(BaseModel):
     creator: ParticipantIn
-    radius_m: int = Field(default=5000, ge=500, le=25_000)
+    radius_m: int = Field(default=4828, ge=500, le=40_300)
     center_lat: float | None = Field(default=None, ge=-90, le=90)
     center_lon: float | None = Field(default=None, ge=-180, le=180)
 
@@ -208,7 +208,7 @@ class RoundCreate(BaseModel):
     """
 
     member_ids: list[uuid.UUID] | None = None
-    radius_m: int = Field(default=5000, ge=500, le=25_000)
+    radius_m: int = Field(default=4828, ge=500, le=40_300)
 
 
 class RoundCreated(BaseModel):

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { metres } from "@/lib/constraints";
+import { distanceLabel } from "@/lib/constraints";
 import type { SessionState } from "@/lib/types";
 import { Masthead } from "./Logo";
 import { Alert, ArrowRight } from "./icons";
@@ -41,7 +41,7 @@ export function Results({ state }: { state: SessionState }) {
         </p>
         <h1 className="font-serif text-title-1 leading-[1.06]">{winner.name}</h1>
         <p className="mt-2 text-subhead" style={{ color: "var(--ink-3)" }}>
-          {[winner.cuisine.slice(0, 3).join(", "), metres(winner.distance_m)].filter(Boolean).join(", ")}
+          {[winner.cuisine.slice(0, 3).join(", "), distanceLabel(winner.distance_m)].filter(Boolean).join(", ")}
         </p>
 
         <div className="rule my-5" />

@@ -7,7 +7,7 @@ from sqlalchemy import select
 
 from app import osm
 from app.constraints import Status, diet_status
-from app.geo import covering_tiles, geohash_encode, haversine_m
+from app.geo import bbox, covering_tiles, geohash_encode, haversine_m
 from app.models import Place, TileCache
 
 
@@ -171,22 +171,24 @@ def test_haversine_against_a_known_distance():
 
 
 # --------------------------------------------------------------------------
-# tile cache hit and miss
+# area cache hit and miss
 # --------------------------------------------------------------------------
 
 
-async def test_cache_miss_fetches_and_stores(db, monkeypatch):
+async def test_a_cold_area_is_fetched_in_exactly_one_request(db, monkeypatch):
+    """The freeze this replaced. Fetching per tile meant 25 sequential calls
+    for a 5km search and 42 for a 10km one, each allowed 30 seconds."""
     calls = []
 
-    async def fake_fetch(client, tile):
-        calls.append(tile)
+    async def fake_fetch(client, south, west, north, east):
+        calls.append((south, west, north, east))
         return [
             osm.ParsedPlace(
-                osm_id=f"node/{tile}",
-                name=f"Place {tile}",
+                osm_id="node/1",
+                name="Somewhere",
                 lat=40.7128,
                 lon=-74.0060,
-                geohash5=tile,
+                geohash5=geohash_encode(40.7128, -74.0060, 5),
                 cuisine=["thai"],
                 price_tier=None,
                 diet_flags={"halal": None},
@@ -194,31 +196,51 @@ async def test_cache_miss_fetches_and_stores(db, monkeypatch):
             )
         ]
 
-    monkeypatch.setattr(osm, "fetch_tile", fake_fetch)
-    await osm.ensure_tiles_cached(db, 40.7128, -74.0060, 2000)
+    monkeypatch.setattr(osm, "fetch_area", fake_fetch)
+    tiles = await osm.ensure_area_cached(db, 40.7128, -74.0060, 5000)
 
-    assert calls, "a cold tile must hit Overpass"
+    assert len(calls) == 1, f"one request for the whole area, got {len(calls)}"
+    assert len(tiles) > 1, "the area spans several tiles"
+
+    # Every tile the area covers is now warm, from that single request.
     cached = (await db.execute(select(TileCache.geohash5))).scalars().all()
-    assert set(cached) == set(calls)
+    assert set(cached) == set(tiles)
     assert (await db.execute(select(Place))).scalars().all()
 
 
-async def test_warm_tiles_never_touch_the_network(db, monkeypatch):
-    """Overpass is slow and rate-limited, so it must never be on the request
-    path when the tiles are fresh."""
+async def test_the_request_covers_the_whole_search_box(db, monkeypatch):
+    """One request only helps if it actually spans the area the tiles claim."""
+    box = {}
+
+    async def fake_fetch(client, south, west, north, east):
+        box.update(south=south, west=west, north=north, east=east)
+        return []
+
+    monkeypatch.setattr(osm, "fetch_area", fake_fetch)
+    await osm.ensure_area_cached(db, 40.7128, -74.0060, 5000)
+
+    south, west, north, east = bbox(40.7128, -74.0060, 5000)
+    assert (box["south"], box["west"], box["north"], box["east"]) == (south, west, north, east)
+    assert box["south"] < 40.7128 < box["north"]
+    assert box["west"] < -74.0060 < box["east"]
+
+
+async def test_a_warm_area_never_touches_the_network(db, monkeypatch):
+    """Overpass is slow and rate-limited, so it must stay off the request path
+    once the area is cached."""
     tiles = covering_tiles(40.7128, -74.0060, 2000, 5)
     for tile in tiles:
         db.add(TileCache(geohash5=tile, fetched_at=datetime.now(UTC)))
     await db.commit()
 
-    async def explode(client, tile):
-        raise AssertionError(f"hit Overpass for a warm tile: {tile}")
+    async def explode(client, *box):
+        raise AssertionError(f"hit Overpass for a warm area: {box}")
 
-    monkeypatch.setattr(osm, "fetch_tile", explode)
-    assert await osm.ensure_tiles_cached(db, 40.7128, -74.0060, 2000) == tiles
+    monkeypatch.setattr(osm, "fetch_area", explode)
+    assert await osm.ensure_area_cached(db, 40.7128, -74.0060, 2000) == tiles
 
 
-async def test_stale_tiles_are_refetched(db, monkeypatch):
+async def test_a_stale_area_is_refetched(db, monkeypatch):
     tiles = covering_tiles(40.7128, -74.0060, 2000, 5)
     for tile in tiles:
         db.add(TileCache(geohash5=tile, fetched_at=datetime.now(UTC) - timedelta(days=31)))
@@ -226,36 +248,26 @@ async def test_stale_tiles_are_refetched(db, monkeypatch):
 
     calls = []
 
-    async def fake_fetch(client, tile):
-        calls.append(tile)
+    async def fake_fetch(client, *box):
+        calls.append(box)
         return []
 
-    monkeypatch.setattr(osm, "fetch_tile", fake_fetch)
-    await osm.ensure_tiles_cached(db, 40.7128, -74.0060, 2000)
-    assert set(calls) == set(tiles), "a tile past its 30-day TTL must be refetched"
+    monkeypatch.setattr(osm, "fetch_area", fake_fetch)
+    await osm.ensure_area_cached(db, 40.7128, -74.0060, 2000)
+    assert len(calls) == 1, "past the 30-day TTL, the area is fetched again"
 
 
-async def test_a_failing_tile_degrades_instead_of_failing_the_solve(db, monkeypatch):
-    import httpx
+async def test_a_failed_fetch_leaves_the_area_cold(db, monkeypatch):
+    """Marking tiles fresh after a failure would cache an empty city for 30
+    days, so the error propagates and nothing is recorded."""
 
-    async def boom(client, tile):
-        raise httpx.ConnectError("overpass down")
+    async def boom(client, *box):
+        raise osm.OverpassUnavailable("overpass down")
 
-    monkeypatch.setattr(osm, "fetch_tile", boom)
-    await osm.ensure_tiles_cached(db, 40.7128, -74.0060, 2000)
+    monkeypatch.setattr(osm, "fetch_area", boom)
 
-    # Nothing cached, nothing raised, and the tile stays unmarked so the next
-    # solve retries it rather than trusting an empty result for 30 days.
+    with pytest.raises(osm.OverpassUnavailable):
+        await osm.ensure_area_cached(db, 40.7128, -74.0060, 2000)
+
     assert (await db.execute(select(TileCache))).scalars().all() == []
-
-
-async def test_places_near_enforces_the_radius_not_just_the_tile(db):
-    """Tiles are square, the search area is a circle."""
-    near = Place(osm_id="node/near", name="Near", lat=40.7128, lon=-74.0060, geohash5=geohash_encode(40.7128, -74.0060, 5), cuisine=[], diet_flags={})
-    far_lat = 40.7128 + 0.05  # ~5.5 km north, same tile neighbourhood
-    far = Place(osm_id="node/far", name="Far", lat=far_lat, lon=-74.0060, geohash5=geohash_encode(far_lat, -74.0060, 5), cuisine=[], diet_flags={})
-    db.add_all([near, far])
-    await db.commit()
-
-    found = await osm.places_near(db, 40.7128, -74.0060, 1000)
-    assert [p.name for p in found] == ["Near"]
+    assert (await db.execute(select(Place))).scalars().all() == []

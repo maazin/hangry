@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.constraints import FILTERABLE_DIETS
-from app.geo import covering_tiles, geohash_bounds, geohash_encode, haversine_m
+from app.geo import bbox, covering_tiles, geohash_encode, haversine_m
 from app.models import Place, TileCache
 
 log = logging.getLogger(__name__)
@@ -119,21 +119,40 @@ def build_query(south: float, west: float, north: float, east: float) -> str:
     )
 
 
-async def fetch_tile(client: httpx.AsyncClient, geohash5: str) -> list[ParsedPlace]:
-    """Fetch every eatery in one geohash tile."""
-    south, west, north, east = geohash_bounds(geohash5)
-    # Form-encoded `data=`, not a raw body, Overpass rejects the latter.
-    response = await client.post(
-        settings.overpass_url,
-        data={"data": build_query(south, west, north, east)},
-        headers={"User-Agent": USER_AGENT},
-        timeout=settings.overpass_timeout_s,
-    )
-    response.raise_for_status()
-    elements = response.json().get("elements", [])
+class OverpassUnavailable(RuntimeError):
+    """Overpass did not answer in time, or answered with an error."""
+
+
+async def fetch_area(
+    client: httpx.AsyncClient, south: float, west: float, north: float, east: float
+) -> list[ParsedPlace]:
+    """Every eatery in one bounding box, in a single request.
+
+    This used to run per geohash tile, which meant a 5km search made 25
+    sequential requests and a 10km search made 42. Each was allowed 30
+    seconds, so a first search in a new city could sit there for minutes
+    while Overpass rate-limited the burst. The whole area is one query now.
+    """
+    try:
+        response = await client.post(
+            settings.overpass_url,
+            # Form-encoded `data=`, not a raw body. Overpass rejects the latter.
+            data={"data": build_query(south, west, north, east)},
+            headers={"User-Agent": USER_AGENT},
+            timeout=settings.overpass_timeout_s,
+        )
+        response.raise_for_status()
+        elements = response.json().get("elements", [])
+    except httpx.TimeoutException as exc:
+        raise OverpassUnavailable("the map service took too long") from exc
+    except httpx.HTTPStatusError as exc:
+        # 429 and 504 are Overpass under load, which is common and temporary.
+        raise OverpassUnavailable(f"the map service returned {exc.response.status_code}") from exc
+    except (httpx.HTTPError, ValueError) as exc:
+        raise OverpassUnavailable("the map service could not be reached") from exc
 
     parsed = [p for p in (parse_element(e) for e in elements) if p is not None]
-    log.info("overpass tile %s: %d elements -> %d usable places", geohash5, len(elements), len(parsed))
+    log.info("overpass area fetch: %d elements -> %d usable places", len(elements), len(parsed))
     return parsed
 
 
@@ -145,7 +164,18 @@ async def _fresh_tiles(db: AsyncSession, tiles: list[str]) -> set[str]:
     return set(rows.scalars().all())
 
 
+# Postgres allows 32767 bind parameters in one statement. Each place binds 11
+# columns, so batches stay well under that. Fetching per tile kept batches
+# small by accident; fetching a whole city at once does not.
+UPSERT_BATCH = 1000
+
+
 async def _upsert_places(db: AsyncSession, places: list[ParsedPlace]) -> None:
+    for start in range(0, len(places), UPSERT_BATCH):
+        await _upsert_batch(db, places[start : start + UPSERT_BATCH])
+
+
+async def _upsert_batch(db: AsyncSession, places: list[ParsedPlace]) -> None:
     if not places:
         return
     # Places are shared global cache rows; a re-fetch should refresh them
@@ -185,11 +215,13 @@ async def _upsert_places(db: AsyncSession, places: list[ParsedPlace]) -> None:
     )
 
 
-async def ensure_tiles_cached(db: AsyncSession, lat: float, lon: float, radius_m: int) -> list[str]:
-    """Make sure every tile covering the search circle is fresh.
+async def ensure_area_cached(db: AsyncSession, lat: float, lon: float, radius_m: int) -> list[str]:
+    """Make sure the search area has been fetched, in one request if not.
 
-    Returns the tiles covering the area. Only stale or unseen tiles hit
-    Overpass; a warm session never touches the network.
+    Tiles remain the unit of bookkeeping, because they are what makes the
+    cache reusable across groups searching overlapping areas. They are no
+    longer the unit of fetching. If any tile covering the area is stale, one
+    query covers the whole box and every tile in it is marked fresh.
     """
     tiles = covering_tiles(lat, lon, radius_m, precision=5)
     fresh = await _fresh_tiles(db, tiles)
@@ -199,23 +231,25 @@ async def ensure_tiles_cached(db: AsyncSession, lat: float, lon: float, radius_m
         log.info("all %d tiles warm, skipping overpass", len(tiles))
         return tiles
 
-    async with httpx.AsyncClient() as client:
-        for tile in stale:
-            try:
-                places = await fetch_tile(client, tile)
-            except (httpx.HTTPError, ValueError) as exc:
-                # A dead tile degrades the candidate set; it should not fail
-                # the solve. The tile stays unmarked and is retried next time.
-                log.warning("overpass tile %s failed: %s", tile, exc)
-                continue
+    log.info("%d of %d tiles stale, fetching the area in one request", len(stale), len(tiles))
+    south, west, north, east = bbox(lat, lon, radius_m)
 
-            await _upsert_places(db, places)
-            await db.execute(
-                pg_insert(TileCache)
-                .values(geohash5=tile, fetched_at=datetime.now(UTC))
-                .on_conflict_do_update(index_elements=[TileCache.geohash5], set_={"fetched_at": datetime.now(UTC)})
-            )
-            await db.commit()
+    async with httpx.AsyncClient() as client:
+        places = await fetch_area(client, south, west, north, east)
+
+    await _upsert_places(db, places)
+
+    # Only now are the tiles fresh. A failed fetch raises above and leaves
+    # them stale, so the next attempt tries again rather than trusting an
+    # empty area for 30 days.
+    now = datetime.now(UTC)
+    for tile in tiles:
+        await db.execute(
+            pg_insert(TileCache)
+            .values(geohash5=tile, fetched_at=now)
+            .on_conflict_do_update(index_elements=[TileCache.geohash5], set_={"fetched_at": now})
+        )
+    await db.commit()
 
     return tiles
 

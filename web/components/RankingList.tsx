@@ -21,7 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useState } from "react";
 
-import { metres } from "@/lib/constraints";
+import { distanceLabel } from "@/lib/constraints";
 import type { Candidate, SessionState } from "@/lib/types";
 import { Masthead } from "./Logo";
 import { ChevronDown, ChevronUp, DragHandle } from "./icons";
@@ -42,7 +42,7 @@ function Row({
   onMove: (from: number, to: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: candidate.id });
-  const meta = [candidate.cuisine.slice(0, 2).join(", "), metres(candidate.distance_m)].filter(Boolean).join(", ");
+  const meta = [candidate.cuisine.slice(0, 2).join(", "), distanceLabel(candidate.distance_m)].filter(Boolean).join(", ");
 
   return (
     <li
@@ -174,6 +174,20 @@ export function RankingList({
           </Note>
         </div>
       )}
+
+      {/* Allergies cannot be filtered on, because the map data holds nothing
+          about them, so they arrive as an advisory instead. This screen used
+          to drop them, which meant the one person the warning was written for
+          never saw it at the moment they were choosing. */}
+      {state.advisories.length > 0 ? (
+        <div className="mb-6 space-y-3">
+          {state.advisories.map((advisory, index) => (
+            <Caution key={index} title="Nobody can check this for you">
+              {advisory.detail}
+            </Caution>
+          ))}
+        </div>
+      ) : null}
 
       <DndContext
         sensors={sensors}

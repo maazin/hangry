@@ -264,7 +264,22 @@ async def run_start(db: DbSession, session: Session) -> StartResult:
     center_lat, center_lon = centroid([(p.lat, p.lon) for p in participants])
     session.center_lat, session.center_lon = center_lat, center_lon
 
-    await osm.ensure_tiles_cached(db, center_lat, center_lon, session.radius_m)
+    try:
+        await osm.ensure_area_cached(db, center_lat, center_lon, session.radius_m)
+    except osm.OverpassUnavailable as exc:
+        # Say what happened rather than leaving the button spinning. The cache
+        # may still hold enough from an earlier search, so this only fails the
+        # round when there is nothing to fall back on.
+        log.warning("overpass unavailable: %s", exc)
+        if not await osm.places_near(db, center_lat, center_lon, session.radius_m):
+            raise HTTPException(
+                503,
+                detail={
+                    "code": "places_unavailable",
+                    "message": f"Could not load restaurants right now, {exc}. Try again in a minute.",
+                },
+            ) from exc
+
     places = await osm.places_near(db, center_lat, center_lon, session.radius_m)
 
     if not places:

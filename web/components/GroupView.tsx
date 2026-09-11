@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { adoptTokenForRound, api, readToken, rememberGroup, writeToken, type JoinPayload } from "@/lib/api";
-import { DIET_CHIPS, RADIUS_OPTIONS } from "@/lib/constraints";
+import { DIET_CHIPS, RADIUS_OPTIONS, miles } from "@/lib/constraints";
 import { ApiError, type GroupState } from "@/lib/types";
 import { ConstraintForm } from "./ConstraintForm";
 import { Masthead } from "./Logo";
@@ -38,7 +38,7 @@ export function GroupView({ slug }: { slug: string }) {
   const [copied, setCopied] = useState(false);
   const [picking, setPicking] = useState(false);
   const [coming, setComing] = useState<string[]>([]);
-  const [radius, setRadius] = useState(5000);
+  const [radius, setRadius] = useState(miles(3));
   const tokenRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -88,19 +88,26 @@ export function GroupView({ slug }: { slug: string }) {
     const link = `${window.location.origin}/g/${slug}`;
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: state?.name ?? "Hangry",
-          text: "Join the group. We use this to pick where to eat.",
-          url: link,
-        });
+        // `title` and `url` only. Some share targets concatenate `text` and
+        // `url` awkwardly, and a few send the text and drop the link, which
+        // leaves the recipient with an invitation and no way to accept it.
+        await navigator.share({ title: `Join ${state?.name ?? "the group"} on Hangry`, url: link });
         return;
       } catch {
         /* dismissed, fall through to copy */
       }
     }
-    await navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // `navigator.clipboard` is undefined on an insecure origin and can be
+      // refused even on a secure one. Failing silently left the button
+      // unchanged and the old clipboard contents in place, so whatever the
+      // person pasted next was not this link.
+      setError(`Copying was blocked. The link is ${link}`);
+    }
   }
 
   async function startRound() {

@@ -67,26 +67,43 @@ def geohash_bounds(gh: str) -> tuple[float, float, float, float]:
     return lat_range[0], lon_range[0], lat_range[1], lon_range[1]
 
 
-def covering_tiles(lat: float, lon: float, radius_m: int, precision: int = 5) -> list[str]:
-    """Every geohash tile that the search circle touches.
-
-    A 5km radius around a point near a cell edge spills into neighbours, so
-    stepping a grid over the bounding box is what keeps the cache from
-    silently missing half the candidates.
-    """
-    # Degrees per metre; longitude compresses as you move away from the equator.
+def bbox(lat: float, lon: float, radius_m: int) -> tuple[float, float, float, float]:
+    """The (south, west, north, east) box that contains the search circle."""
     d_lat = radius_m / 111_320.0
+    # Longitude degrees shrink as you move away from the equator.
     d_lon = radius_m / (111_320.0 * max(math.cos(math.radians(lat)), 0.01))
+    return lat - d_lat, lon - d_lon, lat + d_lat, lon + d_lon
 
-    # ~0.04 deg is under one precision-5 cell, so no tile is stepped over.
-    step = 0.04
+
+def covering_tiles(lat: float, lon: float, radius_m: int, precision: int = 5) -> list[str]:
+    """Every geohash tile the search circle touches.
+
+    A circle near a cell edge spills into its neighbours, so the whole box is
+    walked rather than just the centre.
+
+    The step is half a precision-5 cell, which is small enough that no cell
+    between the corners is skipped and large enough that the walk stays
+    cheap. An earlier version stepped a fixed 0.04 degrees out to twice the
+    box width, which reported 25 tiles for a 5km radius that touches nine.
+    """
+    south, west, north, east = bbox(lat, lon, radius_m)
+
+    # A precision-5 cell is roughly 0.044 by 0.044 degrees.
+    step = 0.02
     tiles: set[str] = set()
-    steps_lat = int(d_lat / step) + 1
-    steps_lon = int(d_lon / step) + 1
 
-    for i in range(-steps_lat, steps_lat + 1):
-        for j in range(-steps_lon, steps_lon + 1):
-            tiles.add(geohash_encode(lat + i * step, lon + j * step, precision))
+    y = south
+    while True:
+        x = west
+        while True:
+            tiles.add(geohash_encode(y, x, precision))
+            if x >= east:
+                break
+            x = min(x + step, east)
+        if y >= north:
+            break
+        y = min(y + step, north)
+
     return sorted(tiles)
 
 

@@ -28,7 +28,10 @@ export default function CreatePage() {
       const group = await api.createGroup(name, payload);
       writeToken(group.slug, group.token);
       rememberGroup(group.slug, name);
-      router.push(`/g/${group.slug}`);
+      // replace rather than push. With push, the back gesture from the group
+      // page lands on this create form, and filling it in again makes a
+      // second group that looks like the first one failed to save.
+      router.replace(`/g/${group.slug}`);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Could not start a group. Try again.");
       setBusy(false);

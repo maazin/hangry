@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { geocode, locate, type JoinPayload } from "@/lib/api";
-import { DIET_CHIPS, DISTANCE_OPTIONS, RADIUS_OPTIONS } from "@/lib/constraints";
+import { DIET_CHIPS, DISTANCE_OPTIONS, RADIUS_OPTIONS, miles } from "@/lib/constraints";
 import { Pin } from "./icons";
 import { Caution, ErrorNote, Note } from "./ui";
 
@@ -40,8 +40,8 @@ export function ConstraintForm({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const [diets, setDiets] = useState<string[]>([]);
-  const [maxDistance, setMaxDistance] = useState<number>(10000);
-  const [radius, setRadius] = useState<number>(5000);
+  const [maxDistance, setMaxDistance] = useState<number>(miles(5));
+  const [radius, setRadius] = useState<number>(miles(3));
   const [openNow, setOpenNow] = useState(true);
 
   const unfilterable = DIET_CHIPS.filter((c) => !c.filterable && diets.includes(c.key));
