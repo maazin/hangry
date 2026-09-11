@@ -190,6 +190,7 @@ CORS rejects the new one:
 | Site loads, every action fails | `CORS_ORIGINS` does not match the Vercel domain |
 | `db: unreachable` on health | The Neon connection string is wrong or truncated |
 | `TypeError: ... 'sslmode'` in the deploy log | An old build. `app/dburl.py` handles this from bc70d00 onward |
+| Vercel build succeeds then refuses to deploy | Vercel blocks known-vulnerable Next.js versions. Bump `next` in `web/package.json` and push |
 | Vercel build cannot find the app | **Root Directory** is not set to `web` |
 | API calls go to localhost in production | `NEXT_PUBLIC_API_URL` was added after the build. Redeploy |
 | Links unfurl as bare URLs | `NEXT_PUBLIC_SITE_URL` unset on a custom domain |
