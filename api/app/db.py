@@ -12,7 +12,9 @@ class Base(DeclarativeBase):
 
 
 engine = create_async_engine(
-    settings.database_url,
+    settings.sqlalchemy_url,
+    # The host's libpq query string, translated for asyncpg. See app/dburl.py.
+    connect_args=settings.sqlalchemy_connect_args,
     pool_pre_ping=True,
     **({"poolclass": NullPool} if settings.testing else {}),
 )

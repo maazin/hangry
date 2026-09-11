@@ -1,31 +1,24 @@
-from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.dburl import normalize
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    # As the host hands it over. Providers emit libpq strings, which need
+    # translating before asyncpg will take them. See app/dburl.py.
     database_url: str = "postgresql+asyncpg://hangry:hangry@localhost:5433/hangry"
 
-    @field_validator("database_url")
-    @classmethod
-    def async_driver(cls, value: str) -> str:
-        """Force the asyncpg driver onto whatever the host handed us.
+    @property
+    def sqlalchemy_url(self) -> str:
+        """`database_url` with the async driver and no libpq-only query string."""
+        return normalize(self.database_url)[0]
 
-        Every managed Postgres, Fly, Render, Railway, Heroku, injects
-        DATABASE_URL as `postgres://` or `postgresql://`, which SQLAlchemy
-        resolves to psycopg2 and then dies on, because this app is async.
-        Rewriting it here means the deploy works with the platform's variable
-        untouched, instead of failing at first connection with an error that
-        reads like a missing dependency.
-        """
-        for prefix in ("postgresql+asyncpg://", "postgres+asyncpg://"):
-            if value.startswith(prefix):
-                return value.replace("postgres+asyncpg://", "postgresql+asyncpg://", 1)
-        for prefix in ("postgresql://", "postgres://"):
-            if value.startswith(prefix):
-                return "postgresql+asyncpg://" + value[len(prefix) :]
-        return value
+    @property
+    def sqlalchemy_connect_args(self) -> dict:
+        """What the query string became, in the form asyncpg wants."""
+        return normalize(self.database_url)[1]
 
     # Under pytest each test gets its own event loop, and a pooled asyncpg
     # connection is bound to the loop that opened it. Pooling is disabled

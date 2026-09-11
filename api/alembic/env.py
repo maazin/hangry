@@ -2,15 +2,14 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.ext.asyncio import create_async_engine
 
+from app import models  # noqa: F401  -- importing registers the tables on Base
 from app.config import settings
 from app.db import Base
-from app import models  # noqa: F401  -- import registers the tables on Base
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -20,7 +19,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=settings.database_url,
+        url=settings.sqlalchemy_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -36,9 +35,16 @@ def do_run_migrations(connection) -> None:
 
 
 async def run_migrations_online() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    """Build the engine directly rather than through alembic.ini.
+
+    `config.set_main_option` writes the URL into a ConfigParser, which treats
+    `%` as interpolation syntax. Generated database passwords contain `%`
+    often enough that going through the ini file turns a valid password into a
+    crash at deploy time. Passing the URL straight to the engine sidesteps it.
+    """
+    connectable = create_async_engine(
+        settings.sqlalchemy_url,
+        connect_args=settings.sqlalchemy_connect_args,
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:

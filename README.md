@@ -43,7 +43,7 @@ Then open http://localhost:3000. `GET /api/health` should return
 cd api && .venv/bin/python -m pytest -q
 ```
 
-155 tests, against a real Postgres (`hangry_test`, created automatically)
+177 tests, against a real Postgres (`hangry_test`, created automatically)
 rather than SQLite. The schema leans on JSONB, `text[]` and native uuid, and a filter
 whose entire job is keeping `null` distinct from `"no"` should not be
 validated on a database with different null semantics than production.
@@ -268,10 +268,11 @@ api/
     routes.py             sessions/rounds
     routes_groups.py      groups, members, starting rounds
     retention.py          deletes what the interface promised to delete
+    dburl.py              translates a host's connection string for asyncpg
     models.py schemas.py deps.py db.py config.py slug.py main.py
   alembic/versions/       0001 sessions · 0002 places · 0003 rankings
                           0004 locked   · 0005 groups and members
-  tests/                  155 tests
+  tests/                  177 tests
 web/
   app/
     page.tsx              /, create a group, and your groups list
@@ -353,9 +354,13 @@ clicking is yours to do. Four things in it are worth knowing before you start:
   placeholder, then web app, then back to fill the placeholder in.
 - **Set the Vercel root directory to `web`.** Without it the build looks for
   a Next.js app at the repository root and fails.
-- **Managed Postgres hands over a `postgres://` URL**, which SQLAlchemy maps
-  to psycopg2 and then fails on, because this app is async. `app/config.py`
-  rewrites the scheme, so the platform's value can be pasted unchanged.
+- **Managed Postgres hands over a libpq URL**, and two parts of it need
+  translating. The `postgres://` scheme maps to psycopg2, which this async app
+  cannot use. Worse, Neon appends `?sslmode=require&channel_binding=require`,
+  and SQLAlchemy forwards unknown query parameters straight to the driver,
+  which is how a deploy died on `TypeError: connect() got an unexpected
+  keyword argument 'sslmode'`. `app/dburl.py` handles both, so the platform's
+  value really can be pasted unchanged.
 
 `api/fly.toml` is committed too, for Fly.io. It keeps a machine warm and runs
 migrations as a release step, so a failed migration aborts the deploy rather

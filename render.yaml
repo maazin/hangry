@@ -19,8 +19,9 @@ services:
     healthCheckPath: /api/health
 
     envVars:
-      # From Neon. Paste the pooled connection string unchanged; the app
-      # rewrites the scheme to the asyncpg driver on load.
+      # From Neon, pasted unchanged including its query string. Neon adds
+      # `?sslmode=require&channel_binding=require`, which are libpq settings
+      # asyncpg rejects, so app/dburl.py translates them on load.
       - key: DATABASE_URL
         sync: false
 

@@ -66,8 +66,17 @@ to the API to fill in the real value.
 
 Keep that string. It is a password, so treat it like one.
 
-You do not need to convert it. The app rewrites the scheme to the async driver
-when it loads, which a unit test covers.
+Paste it exactly as Neon gives it, query string and all. Neon appends
+`?sslmode=require&channel_binding=require`, which are libpq settings that the
+async driver this app uses will not accept. `app/dburl.py` translates them on
+load: the scheme becomes the async driver, `sslmode` moves to where asyncpg
+expects it, and anything with no equivalent is dropped and logged rather than
+passed through. Twenty two tests cover it, including one that opens a real
+connection.
+
+Editing the string by hand is the thing to avoid. It was an untranslated
+`sslmode` that produced `TypeError: connect() got an unexpected keyword
+argument 'sslmode'` on an earlier deploy.
 
 ## 2. API on Render
 
@@ -180,6 +189,7 @@ CORS rejects the new one:
 | First load takes about a minute | Render free plan waking up. See step 5 |
 | Site loads, every action fails | `CORS_ORIGINS` does not match the Vercel domain |
 | `db: unreachable` on health | The Neon connection string is wrong or truncated |
+| `TypeError: ... 'sslmode'` in the deploy log | An old build. `app/dburl.py` handles this from bc70d00 onward |
 | Vercel build cannot find the app | **Root Directory** is not set to `web` |
 | API calls go to localhost in production | `NEXT_PUBLIC_API_URL` was added after the build. Redeploy |
 | Links unfurl as bare URLs | `NEXT_PUBLIC_SITE_URL` unset on a custom domain |
